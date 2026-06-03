@@ -1,0 +1,212 @@
+<x-layouts.admin>
+    <div class="max-w-6xl mx-auto px-4 py-10">
+        <div class="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-blue-600 via-cyan-500 to-blue-400 p-8 text-white shadow-2xl shadow-blue-500/20 mb-8">
+            <div class="absolute -top-20 -right-20 w-72 h-72 bg-white/20 rounded-full blur-3xl"></div>
+
+            <div class="relative flex items-center justify-between gap-4">
+                <div>
+                    <a href="{{ route('admin.portfolios.index') }}"
+                       class="inline-flex items-center gap-2 bg-white/15 border border-white/20 px-4 py-2 rounded-full text-sm font-bold mb-4">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                        Kembali
+                    </a>
+
+                    <h1 class="text-3xl md:text-5xl font-black">
+                        Edit Portfolio
+                    </h1>
+
+                    <p class="text-blue-50 mt-3">
+                        Perbarui showcase project HilmiDev.
+                    </p>
+                </div>
+
+                <div class="hidden md:flex w-20 h-20 rounded-[2rem] bg-white/20 items-center justify-center">
+                    <i data-lucide="images" class="w-10 h-10"></i>
+                </div>
+            </div>
+        </div>
+
+        <form action="{{ route('admin.portfolios.update', $portfolio) }}"
+              method="POST"
+              enctype="multipart/form-data"
+              class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            @csrf
+            @method('PUT')
+
+            <div class="lg:col-span-2 space-y-6">
+                <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center">
+                            <i data-lucide="file-text" class="w-6 h-6"></i>
+                        </div>
+
+                        <div>
+                            <h2 class="font-black text-slate-900">Informasi Project</h2>
+                            <p class="text-sm text-slate-500">Data utama portfolio.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Nama Project</label>
+                            <input type="text"
+                                   name="title"
+                                   value="{{ old('title', $portfolio->title) }}"
+                                   class="w-full rounded-2xl border-blue-100 focus:border-blue-500 focus:ring-blue-500">
+                            @error('title') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">Kategori</label>
+                                <input type="text"
+                                       name="category"
+                                       value="{{ old('category', $portfolio->category) }}"
+                                       class="w-full rounded-2xl border-blue-100 focus:border-blue-500 focus:ring-blue-500">
+                                @error('category') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">Nama Client</label>
+                                <input type="text"
+                                       name="client_name"
+                                       value="{{ old('client_name', $portfolio->client_name) }}"
+                                       class="w-full rounded-2xl border-blue-100 focus:border-blue-500 focus:ring-blue-500">
+                                @error('client_name') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Project URL</label>
+                            <input type="url"
+                                   name="project_url"
+                                   value="{{ old('project_url', $portfolio->project_url) }}"
+                                   class="w-full rounded-2xl border-blue-100 focus:border-blue-500 focus:ring-blue-500"
+                                   placeholder="https://project-demo.com">
+                            @error('project_url') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Deskripsi Singkat</label>
+                            <textarea name="short_description"
+                                      rows="3"
+                                      class="w-full rounded-2xl border-blue-100 focus:border-blue-500 focus:ring-blue-500">{{ old('short_description', $portfolio->short_description) }}</textarea>
+                            @error('short_description') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Deskripsi Lengkap</label>
+                            <textarea name="description"
+                                      rows="7"
+                                      class="w-full rounded-2xl border-blue-100 focus:border-blue-500 focus:ring-blue-500">{{ old('description', $portfolio->description) }}</textarea>
+                            @error('description') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Tech Stack</label>
+                            <textarea name="tech_stack"
+                                      rows="5"
+                                      class="w-full rounded-2xl border-blue-100 focus:border-blue-500 focus:ring-blue-500"
+                                      placeholder="Tulis 1 teknologi per baris">{{ old('tech_stack', $portfolio->tech_stack ? implode("\n", $portfolio->tech_stack) : '') }}</textarea>
+                            <p class="text-xs text-slate-500 mt-2">
+                                Contoh: Laravel, TailwindCSS, MySQL, AlpineJS
+                            </p>
+                            @error('tech_stack') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="space-y-6">
+                <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-2xl shadow-blue-500/10 lg:sticky lg:top-28">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center">
+                            <i data-lucide="image-plus" class="w-6 h-6"></i>
+                        </div>
+
+                        <div>
+                            <h2 class="font-black text-slate-900">Media & Status</h2>
+                            <p class="text-sm text-slate-500">Update thumbnail dan galeri.</p>
+                        </div>
+                    </div>
+
+                    <div class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Thumbnail Saat Ini</label>
+
+                            @if ($portfolio->thumbnail)
+                                <img src="{{ asset('storage/' . $portfolio->thumbnail) }}"
+                                     class="w-full rounded-2xl border border-blue-100 mb-3 shadow-lg shadow-blue-500/10"
+                                     alt="{{ $portfolio->title }}">
+                            @else
+                                <div class="w-full aspect-video rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-400 mb-3">
+                                    <i data-lucide="image" class="w-10 h-10"></i>
+                                </div>
+                            @endif
+
+                            <input type="file"
+                                   name="thumbnail"
+                                   class="w-full rounded-2xl border border-blue-100 bg-blue-50/50 p-3 text-sm">
+                            @error('thumbnail') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-bold text-slate-700 mb-2">Gallery Saat Ini</label>
+
+                            @if ($portfolio->gallery)
+                                <div class="grid grid-cols-2 gap-2 mb-3">
+                                    @foreach ($portfolio->gallery as $image)
+                                        <img src="{{ asset('storage/' . $image) }}"
+                                             class="w-full aspect-video object-cover rounded-2xl border border-blue-100"
+                                             alt="{{ $portfolio->title }}">
+                                    @endforeach
+                                </div>
+                            @else
+                                <p class="text-sm text-slate-500 mb-3">Belum ada gallery.</p>
+                            @endif
+
+                            <input type="file"
+                                   name="gallery[]"
+                                   multiple
+                                   class="w-full rounded-2xl border border-blue-100 bg-blue-50/50 p-3 text-sm">
+                            <p class="text-xs text-slate-500 mt-2">
+                                Upload gallery baru akan mengganti gallery lama.
+                            </p>
+                            @error('gallery.*') <p class="text-red-600 text-sm mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        <div class="grid grid-cols-1 gap-3">
+                            <label class="flex items-center justify-between gap-3 bg-blue-50 border border-blue-100 rounded-2xl p-4">
+                                <span class="font-bold text-slate-700">Featured</span>
+                                <input type="checkbox"
+                                       name="is_featured"
+                                       value="1"
+                                       class="rounded text-blue-600"
+                                       @checked(old('is_featured', $portfolio->is_featured))>
+                            </label>
+
+                            <label class="flex items-center justify-between gap-3 bg-blue-50 border border-blue-100 rounded-2xl p-4">
+                                <span class="font-bold text-slate-700">Aktif</span>
+                                <input type="checkbox"
+                                       name="is_active"
+                                       value="1"
+                                       class="rounded text-blue-600"
+                                       @checked(old('is_active', $portfolio->is_active))>
+                            </label>
+                        </div>
+
+                        <button class="w-full inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white font-black px-6 py-4 rounded-2xl shadow-lg shadow-blue-500/30">
+                            <i data-lucide="save" class="w-5 h-5"></i>
+                            Update Portfolio
+                        </button>
+
+                        <a href="{{ route('admin.portfolios.index') }}"
+                           class="w-full inline-flex items-center justify-center gap-2 bg-blue-50 text-blue-700 font-black px-6 py-4 rounded-2xl">
+                            Batal
+                        </a>
+                    </div>
+                </div>
+            </aside>
+        </form>
+    </div>
+</x-layouts.admin>
