@@ -14,6 +14,13 @@ return [
     |
     */
 
+    'whatsapp' => [
+        'enabled' => env('WA_NOTIFICATION_ENABLED', false),
+        'admin_number' => env('WA_ADMIN_NUMBER'),
+        'gateway_url' => env('WA_GATEWAY_URL'),
+        'token' => env('WA_GATEWAY_TOKEN'),
+    ],
+
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],

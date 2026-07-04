@@ -58,4 +58,11 @@ class User extends Authenticatable
     {
         return $this->hasMany(\App\Models\Order::class);
     }
+
+
+
+    public function projectRequests()
+    {
+        return $this->hasMany(\App\Models\ProjectRequest::class);
+    }
 }

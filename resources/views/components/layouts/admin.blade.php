@@ -67,15 +67,14 @@
                 <i data-lucide="shopping-cart" class="w-5 h-5"></i> Order
             </a>
 
-            <a href="#"
-               class="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-blue-50 text-slate-700 font-semibold">
-                <i data-lucide="users"></i>
-                Client
+            <a href="{{ route('admin.clients.index') }}"
+            class="flex items-center gap-3 px-4 py-3 rounded-2xl {{ request()->routeIs('admin.clients.*') ? 'bg-blue-600 text-white' : 'hover:bg-blue-50 text-slate-700' }} font-bold">
+                <i data-lucide="users" class="w-5 h-5"></i>
+                Clients
             </a>
-
-            <a href="#"
-               class="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-blue-50 text-slate-700 font-semibold">
-                <i data-lucide="credit-card"></i>
+            <a href="{{ route('admin.payments.index') }}"
+            class="flex items-center gap-3 px-4 py-3 rounded-2xl {{ request()->routeIs('admin.payments.*') ? 'bg-blue-600 text-white' : 'hover:bg-blue-50 text-slate-700' }} font-bold">
+                <i data-lucide="credit-card" class="w-5 h-5"></i>
                 Pembayaran
             </a>
 
@@ -96,7 +95,11 @@
                     <i data-lucide="images" class="w-5 h-5"></i>
                     Portfolio
                 </a>
-
+            <a href="{{ route('admin.posts.index') }}"
+            class="flex items-center gap-3 px-4 py-3 rounded-2xl {{ request()->routeIs('admin.posts.*') ? 'bg-blue-600 text-white' : 'hover:bg-blue-50 text-slate-700' }} font-bold">
+                <i data-lucide="newspaper" class="w-5 h-5"></i>
+                Blog 
+            </a>
             <a href="{{ route('admin.testimonials.index') }}"
                 class="flex items-center gap-3 px-4 py-3 rounded-2xl {{ request()->routeIs('admin.testimonials.*') ? 'bg-blue-600 text-white' : 'hover:bg-blue-50 text-slate-700' }} font-bold">
                     <i data-lucide="message-square-heart" class="w-5 h-5"></i>

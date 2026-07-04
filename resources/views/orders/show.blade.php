@@ -34,6 +34,7 @@
                                 <p class="font-black text-slate-900">
                                     {{ $item->product_name }}
                                 </p>
+
                                 <p class="text-sm text-slate-500">
                                     {{ $item->product->technology ?? 'Source Code Premium' }}
                                 </p>
@@ -75,12 +76,18 @@
                     </div>
                 </div>
 
+                <a href="{{ route('orders.invoice-pdf', $order) }}"
+                   class="mt-4 w-full inline-flex items-center justify-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-5 py-4 rounded-2xl font-black">
+                    <i data-lucide="file-down" class="w-5 h-5"></i>
+                    Download Invoice PDF
+                </a>
+
                 @if ($order->payment_status === 'paid')
-                    <div class="mt-6 space-y-3">
+                    <div class="mt-4 space-y-3">
                         @foreach ($order->items as $item)
                             @if ($item->product && $item->product->file_path)
                                 <a href="{{ route('orders.items.download', [$order, $item]) }}"
-                                class="w-full inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-4 rounded-2xl font-black">
+                                   class="w-full inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-4 rounded-2xl font-black">
                                     <i data-lucide="download" class="w-5 h-5"></i>
                                     Download {{ $item->product_name }}
                                 </a>
@@ -88,51 +95,54 @@
                         @endforeach
                     </div>
                 @else
-                    <button class="mt-6 w-full inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-4 rounded-2xl font-black">
-                        <i data-lucide="credit-card" class="w-5 h-5"></i>
-                        Bayar Sekarang
-                    </button>
-                        @if ($order->payment_status !== 'paid')
-                            <div class="mt-6 bg-blue-50 border border-blue-100 rounded-2xl p-4">
-                                <h3 class="font-black text-slate-900 mb-3">Upload Bukti Pembayaran</h3>
+                    <div class="mt-6 bg-blue-50 border border-blue-100 rounded-2xl p-4">
+                        <h3 class="font-black text-slate-900 mb-3">
+                            Upload Bukti Pembayaran
+                        </h3>
 
-                                <form action="{{ route('orders.payment-proof.store', $order) }}"
-                                    method="POST"
-                                    enctype="multipart/form-data"
-                                    class="space-y-4">
-                                    @csrf
+                        <form action="{{ route('orders.payment-proof.store', $order) }}"
+                              method="POST"
+                              enctype="multipart/form-data"
+                              class="space-y-4">
+                            @csrf
 
-                                    <div>
-                                        <label class="block text-sm font-bold text-slate-700 mb-2">Metode Pembayaran</label>
-                                        <select name="payment_method" class="w-full rounded-2xl border-blue-100">
-                                            <option value="BCA">BCA</option>
-                                            <option value="BRI">BRI</option>
-                                            <option value="BNI">BNI</option>
-                                            <option value="Mandiri">Mandiri</option>
-                                            <option value="DANA">DANA</option>
-                                            <option value="OVO">OVO</option>
-                                            <option value="QRIS">QRIS</option>
-                                        </select>
-                                    </div>
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">
+                                    Metode Pembayaran
+                                </label>
 
-                                    <div>
-                                        <label class="block text-sm font-bold text-slate-700 mb-2">Bukti Transfer</label>
-                                        <input type="file"
-                                            name="payment_proof"
-                                            class="w-full rounded-2xl border border-blue-100 bg-white p-3 text-sm"
-                                            required>
-                                    </div>
-
-                                    <button class="w-full inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-5 py-4 rounded-2xl font-black">
-                                        <i data-lucide="upload" class="w-5 h-5"></i>
-                                        Kirim Bukti Pembayaran
-                                    </button>
-                                </form>
+                                <select name="payment_method"
+                                        class="w-full rounded-2xl border-blue-100 focus:border-blue-500 focus:ring-blue-500">
+                                    <option value="BCA">BCA</option>
+                                    <option value="BRI">BRI</option>
+                                    <option value="BNI">BNI</option>
+                                    <option value="Mandiri">Mandiri</option>
+                                    <option value="DANA">DANA</option>
+                                    <option value="OVO">OVO</option>
+                                    <option value="QRIS">QRIS</option>
+                                </select>
                             </div>
-                            <option value="review" @selected($order->payment_status === 'review')>Review</option>
-                        @endif
+
+                            <div>
+                                <label class="block text-sm font-bold text-slate-700 mb-2">
+                                    Bukti Transfer
+                                </label>
+
+                                <input type="file"
+                                       name="payment_proof"
+                                       class="w-full rounded-2xl border border-blue-100 bg-white p-3 text-sm"
+                                       required>
+                            </div>
+
+                            <button class="w-full inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-4 rounded-2xl font-black">
+                                <i data-lucide="upload" class="w-5 h-5"></i>
+                                Kirim Bukti Pembayaran
+                            </button>
+                        </form>
+                    </div>
+
                     <p class="text-xs text-slate-500 text-center mt-3">
-                        Tombol pembayaran akan kita hubungkan ke payment gateway setelah ini.
+                        Setelah bukti dikirim, admin akan melakukan verifikasi pembayaran.
                     </p>
                 @endif
             </aside>

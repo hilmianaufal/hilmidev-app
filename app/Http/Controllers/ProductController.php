@@ -21,6 +21,7 @@ class ProductController extends Controller
             ->latest()
             ->paginate(12)
             ->withQueryString();
+        
 
         return view('products.index', compact('categories', 'products'));
     }

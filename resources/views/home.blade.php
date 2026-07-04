@@ -1,144 +1,128 @@
 <x-app-layout>
-    <section class="relative min-h-screen overflow-hidden bg-gradient-to-br from-sky-50 via-white to-blue-100">
-        <div class="absolute inset-0">
-            <div class="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl floating-orb"></div>
-            <div class="absolute bottom-20 right-10 w-96 h-96 bg-cyan-300/30 rounded-full blur-3xl floating-orb-2"></div>
-            <div class="absolute top-1/2 left-1/2 w-[700px] h-[700px] -translate-x-1/2 -translate-y-1/2 bg-blue-200/20 rounded-full blur-3xl"></div>
+<section class="relative overflow-hidden bg-gradient-to-br from-sky-50 via-white to-blue-100">
+    <div class="absolute top-20 left-10 w-72 h-72 bg-blue-400/20 rounded-full blur-3xl"></div>
+    <div class="absolute bottom-20 right-10 w-96 h-96 bg-cyan-300/30 rounded-full blur-3xl"></div>
+
+    <div class="relative max-w-7xl mx-auto px-4 py-14"
+         x-data="{
+            search: '',
+            category: 'all'
+         }">
+
+        <div class="text-center max-w-4xl mx-auto mb-10">
+            <div class="inline-flex items-center gap-2 bg-white/80 border border-blue-100 backdrop-blur-xl px-4 py-2 rounded-full shadow-xl shadow-blue-500/10 mb-5">
+                <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
+                <span class="text-sm font-extrabold text-blue-700">
+                    Source Code Marketplace
+                </span>
+            </div>
         </div>
 
-        <div class="relative max-w-7xl mx-auto px-4 pt-20 pb-16 lg:pt-28">
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                <div class="hero-copy">
-                    <div class="inline-flex items-center gap-2 bg-white/70 border border-blue-100 backdrop-blur-xl px-4 py-2 rounded-full shadow-xl shadow-blue-500/10 mb-6">
-                        <span class="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-                        <span class="text-sm font-extrabold text-blue-700">
-                            Premium Web Studio & Source Code Marketplace
-                        </span>
-                    </div>
+        <div class="bg-white/80 backdrop-blur-2xl border border-blue-100 rounded-[2rem] p-4 md:p-5 shadow-2xl shadow-blue-500/10 mb-8">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-4">
+                <div class="lg:col-span-2 relative">
+                    <i data-lucide="search" class="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500"></i>
 
-                    <h1 class="text-5xl md:text-7xl font-black tracking-tight leading-[1.02] text-slate-950">
-                        Build Digital Product
-                        <span class="block text-transparent bg-clip-text bg-gradient-to-r from-blue-700 via-sky-500 to-cyan-400">
-                            Faster & Premium.
-                        </span>
-                    </h1>
-
-                    <p class="mt-6 text-lg md:text-xl text-slate-600 leading-relaxed max-w-2xl">
-                        HilmiDev menyediakan source code premium, jasa website, aplikasi custom,
-                        dashboard admin, dan sistem digital modern dengan desain mobile-first.
-                    </p>
-
-                    <div class="flex flex-col sm:flex-row gap-3 mt-8">
-                        <a href="{{ route('products.index') }}"
-                           class="group inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-7 py-4 rounded-2xl font-black shadow-2xl shadow-blue-500/30 transition">
-                            <i data-lucide="shopping-bag" class="w-5 h-5 group-hover:rotate-12 transition"></i>
-                            Beli Source Code
-                        </a>
-
-                        <a href="{{ route('services.index') }}"
-                           class="inline-flex items-center justify-center gap-2 bg-white/80 border border-blue-100 text-blue-700 px-7 py-4 rounded-2xl font-black shadow-xl shadow-blue-500/10 backdrop-blur-xl">
-                            <i data-lucide="briefcase" class="w-5 h-5"></i>
-                            Pesan Jasa Website
-                        </a>
-                    </div>
-
-                    <div class="grid grid-cols-3 gap-3 mt-10 max-w-xl">
-                        <div class="premium-stat bg-white/80 border border-blue-100 backdrop-blur-xl rounded-3xl p-5 shadow-xl shadow-blue-500/10">
-                            <p class="counter text-3xl font-black text-blue-600" data-count="50">0</p>
-                            <p class="text-xs font-bold text-slate-500 mt-1">Project</p>
-                        </div>
-
-                        <div class="premium-stat bg-white/80 border border-blue-100 backdrop-blur-xl rounded-3xl p-5 shadow-xl shadow-blue-500/10">
-                            <p class="counter text-3xl font-black text-blue-600" data-count="100">0</p>
-                            <p class="text-xs font-bold text-slate-500 mt-1">Source Code</p>
-                        </div>
-
-                        <div class="premium-stat bg-white/80 border border-blue-100 backdrop-blur-xl rounded-3xl p-5 shadow-xl shadow-blue-500/10">
-                            <p class="text-3xl font-black text-blue-600">
-                                <span class="counter" data-count="24">0</span>/7
-                            </p>
-                            <p class="text-xs font-bold text-slate-500 mt-1">Support</p>
-                        </div>
-                    </div>
+                    <input x-model="search"
+                           type="text"
+                           placeholder="Cari source code..."
+                           class="w-full pl-12 pr-4 py-4 rounded-2xl border-blue-100 focus:border-blue-500 focus:ring-blue-500 font-bold">
                 </div>
 
-                <div class="hero-visual relative [perspective:1200px]">
-                    <div class="dashboard-3d relative bg-white/75 border border-blue-100 backdrop-blur-2xl rounded-[2.5rem] p-5 shadow-2xl shadow-blue-500/20">
-                        <div class="bg-slate-950 rounded-[2rem] p-5 text-white overflow-hidden">
-                            <div class="flex items-center justify-between mb-6">
-                                <div>
-                                    <p class="text-xs text-blue-300 font-bold">HilmiDev OS</p>
-                                    <h3 class="text-2xl font-black">Premium Dashboard</h3>
-                                </div>
+                <div class="lg:col-span-2 flex gap-2 overflow-x-auto pb-1">
+                    <button type="button"
+                            @click="category = 'all'"
+                            :class="category === 'all' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-blue-50 text-blue-700'"
+                            class="shrink-0 px-5 py-4 rounded-2xl font-black transition">
+                        Semua
+                    </button>
 
-                                <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-400 flex items-center justify-center shadow-xl shadow-blue-500/40">
-                                    <i data-lucide="code-2" class="w-7 h-7"></i>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 gap-4">
-                                <div class="glass-card bg-white/10 border border-white/10 rounded-3xl p-5">
-                                    <i data-lucide="package" class="w-7 h-7 text-cyan-300 mb-4"></i>
-                                    <p class="font-black">Source Code</p>
-                                    <p class="text-xs text-slate-400 mt-1">Ready to deploy</p>
-                                </div>
-
-                                <div class="glass-card bg-white/10 border border-white/10 rounded-3xl p-5">
-                                    <i data-lucide="briefcase-business" class="w-7 h-7 text-blue-300 mb-4"></i>
-                                    <p class="font-black">Web Services</p>
-                                    <p class="text-xs text-slate-400 mt-1">Custom project</p>
-                                </div>
-
-                                <div class="glass-card bg-white/10 border border-white/10 rounded-3xl p-5">
-                                    <i data-lucide="folder-kanban" class="w-7 h-7 text-indigo-300 mb-4"></i>
-                                    <p class="font-black">Project Request</p>
-                                    <p class="text-xs text-slate-400 mt-1">Client workflow</p>
-                                </div>
-
-                                <div class="glass-card bg-white/10 border border-white/10 rounded-3xl p-5">
-                                    <i data-lucide="zap" class="w-7 h-7 text-yellow-300 mb-4"></i>
-                                    <p class="font-black">Realtime Ready</p>
-                                    <p class="text-xs text-slate-400 mt-1">Modern stack</p>
-                                </div>
-                            </div>
-
-                            <div class="mt-5 rounded-3xl bg-gradient-to-r from-blue-600 to-cyan-400 p-5">
-                                <div class="flex items-center justify-between">
-                                    <div>
-                                        <p class="text-xs text-blue-100 font-bold">Revenue Demo</p>
-                                        <p class="text-3xl font-black">Rp 12.5jt</p>
-                                    </div>
-                                    <i data-lucide="trending-up" class="w-10 h-10"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="floating-badge hidden md:flex absolute -left-8 top-20 bg-white border border-blue-100 rounded-3xl p-4 shadow-2xl shadow-blue-500/20 items-center gap-3">
-                        <div class="w-12 h-12 rounded-2xl bg-green-100 text-green-600 flex items-center justify-center">
-                            <i data-lucide="check-circle" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <p class="font-black">Project Ready</p>
-                            <p class="text-xs text-slate-500">Mobile-first</p>
-                        </div>
-                    </div>
-
-                    <div class="floating-badge-2 hidden md:flex absolute -right-6 bottom-20 bg-white border border-blue-100 rounded-3xl p-4 shadow-2xl shadow-blue-500/20 items-center gap-3">
-                        <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
-                            <i data-lucide="shield-check" class="w-6 h-6"></i>
-                        </div>
-                        <div>
-                            <p class="font-black">Secure Code</p>
-                            <p class="text-xs text-slate-500">Private download</p>
-                        </div>
-                    </div>
+                    @foreach ($categories as $cat)
+                        <button type="button"
+                                @click="category = '{{ $cat->slug }}'"
+                                :class="category === '{{ $cat->slug }}' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'bg-blue-50 text-blue-700'"
+                                class="shrink-0 px-5 py-4 rounded-2xl font-black transition">
+                            {{ $cat->icon }} {{ $cat->name }}
+                        </button>
+                    @endforeach
                 </div>
             </div>
         </div>
 
-        <div class="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent"></div>
-    </section>
+        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            @forelse ($featuredProducts as $product)
+                <a href="{{ route('products.show', $product) }}"
+                   x-show="
+                        ('{{ strtolower($product->name) }}'.includes(search.toLowerCase()) ||
+                         '{{ strtolower($product->short_description) }}'.includes(search.toLowerCase()) ||
+                         '{{ strtolower($product->technology ?? '') }}'.includes(search.toLowerCase()))
+                        &&
+                        (category === 'all' || category === '{{ $product->category->slug ?? '' }}')
+                   "
+                   x-transition
+                   class="group bg-white border border-blue-100 rounded-[2rem] overflow-hidden shadow-xl shadow-blue-500/5 hover:shadow-2xl hover:shadow-blue-500/20 transition duration-300">
+
+                    <div class="aspect-video bg-gradient-to-br from-blue-100 to-cyan-100 overflow-hidden">
+                        @if ($product->thumbnail)
+                            <img src="{{ asset('storage/' . $product->thumbnail) }}"
+                                 class="w-full h-full object-cover group-hover:scale-110 transition duration-700"
+                                 alt="{{ $product->name }}">
+                        @else
+                            <div class="w-full h-full flex items-center justify-center text-blue-400">
+                                <i data-lucide="package" class="w-14 h-14"></i>
+                            </div>
+                        @endif
+                    </div>
+
+                    <div class="p-6">
+                        <div class="flex items-center justify-between gap-3 mb-4">
+                            <span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-black">
+                                {{ $product->category->icon ?? '📦' }} {{ $product->category->name ?? 'Source Code' }}
+                            </span>
+
+                            <span class="text-xs font-black text-slate-400">
+                                {{ $product->technology ?? 'Laravel' }}
+                            </span>
+                        </div>
+
+                        <h3 class="text-xl font-black text-slate-900 group-hover:text-blue-600 line-clamp-2">
+                            {{ $product->name }}
+                        </h3>
+
+                        <p class="text-sm text-slate-500 mt-3 line-clamp-2">
+                            {{ $product->short_description }}
+                        </p>
+
+                        <div class="flex justify-between items-end mt-6 pt-5 border-t border-blue-50">
+                            <div>
+                                <p class="text-xs text-slate-400 font-bold">Harga</p>
+                                <p class="text-2xl font-black text-blue-600">
+                                    Rp {{ number_format($product->final_price ?? $product->price, 0, ',', '.') }}
+                                </p>
+                            </div>
+
+                            <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30">
+                                <i data-lucide="arrow-up-right" class="w-5 h-5"></i>
+                            </div>
+                        </div>
+                    </div>
+                </a>
+            @empty
+                <div class="col-span-full bg-white border border-blue-100 rounded-[2rem] p-12 text-center">
+                    <p class="font-black text-slate-900">Belum ada source code.</p>
+                </div>
+            @endforelse
+        </div>
+
+        <div class="text-center mt-10">
+            <a href="{{ route('products.index') }}"
+               class="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-7 py-4 rounded-2xl font-black shadow-xl shadow-blue-500/30">
+                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
+                Lihat Semua Source Code
+            </a>
+        </div>
+    </div>
+</section>
 
     <section class="premium-section max-w-7xl mx-auto px-4 py-16">
         <div class="text-center max-w-3xl mx-auto mb-10">
@@ -304,6 +288,70 @@
             </div>
         </div>
     </section>
+
+    <section class="premium-section py-20 bg-gradient-to-br from-slate-50 via-white to-blue-50 overflow-hidden">
+    <div class="max-w-7xl mx-auto px-4">
+
+        <div class="text-center mb-14">
+            <div class="inline-flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full font-black mb-4">
+                <i data-lucide="message-square-heart" class="w-4 h-4"></i>
+                Testimonial
+            </div>
+
+            <h2 class="text-4xl md:text-6xl font-black">
+                Apa Kata Client?
+            </h2>
+
+            <p class="text-slate-500 mt-4 max-w-2xl mx-auto">
+                Kepercayaan client adalah aset terbesar kami.
+            </p>
+        </div>
+
+        <div class="testimonial-slider flex gap-6">
+            @foreach($testimonials as $testimonial)
+                <div class="testimonial-card min-w-[380px] bg-white border border-blue-100 rounded-[2rem] p-8 shadow-xl shadow-blue-500/5">
+
+                    <div class="flex items-center gap-1 mb-5 text-amber-400">
+                        @for($i=1;$i<=5;$i++)
+                            <i data-lucide="star"
+                               class="w-5 h-5 {{ $i <= $testimonial->rating ? 'fill-current' : '' }}">
+                            </i>
+                        @endfor
+                    </div>
+
+                    <p class="text-slate-600 leading-relaxed mb-8">
+                        "{{ $testimonial->review }}"
+                    </p>
+
+                    <div class="flex items-center gap-4">
+                        @if($testimonial->photo)
+                            <img src="{{ asset('storage/'.$testimonial->photo) }}"
+                                 class="w-14 h-14 rounded-2xl object-cover">
+                        @else
+                            <div class="w-14 h-14 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center">
+                                <i data-lucide="user" class="w-6 h-6"></i>
+                            </div>
+                        @endif
+
+                        <div>
+                            <h4 class="font-black">
+                                {{ $testimonial->name }}
+                            </h4>
+
+                            <p class="text-sm text-slate-500">
+                                {{ $testimonial->position }}
+                                @if($testimonial->company)
+                                    • {{ $testimonial->company }}
+                                @endif
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+    </div>
+</section>
 
     <section class="premium-section max-w-7xl mx-auto px-4 py-16">
         <div class="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-slate-950 via-blue-950 to-blue-700 p-8 md:p-14 text-white shadow-2xl shadow-blue-500/30">
@@ -498,6 +546,16 @@
                         ease: 'power2.out'
                     });
                 });
+
+                if(document.querySelector('.testimonial-slider'))
+                {
+                    gsap.to('.testimonial-slider', {
+                        x: -1000,
+                        duration: 30,
+                        repeat: -1,
+                        ease: 'none'
+                    });
+                }
             }
         });
     </script>

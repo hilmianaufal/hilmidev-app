@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ProjectRequest;
 use App\Models\Service;
+use App\Services\WhatsAppNotificationService;
 use Illuminate\Http\Request;
 
 class ProjectRequestController extends Controller
@@ -28,7 +29,7 @@ class ProjectRequestController extends Controller
             'description' => ['required', 'string'],
         ]);
 
-        ProjectRequest::create([
+        $projectRequest = ProjectRequest::create([
             'user_id' => auth()->id(),
             'service_id' => $service->id,
             'project_name' => $data['project_name'],
@@ -39,6 +40,17 @@ class ProjectRequestController extends Controller
             'description' => $data['description'],
             'status' => 'pending',
         ]);
+
+        app(WhatsAppNotificationService::class)->sendToAdmin(
+            "📩 *Project Request Baru HilmiDev*\n\n" .
+            "Project: {$projectRequest->project_name}\n" .
+            "Client: " . auth()->user()->name . "\n" .
+            "Layanan: {$service->title}\n" .
+            "WhatsApp: {$projectRequest->phone}\n" .
+            "Budget: " . ($projectRequest->budget ?? '-') . "\n" .
+            "Deadline: " . ($projectRequest->deadline ?? '-') . "\n\n" .
+            "Segera follow up client."
+        );
 
         return redirect()
             ->route('project-requests.index')
