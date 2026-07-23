@@ -21,9 +21,14 @@ class ProductDownloadController extends Controller
         abort_if(! $product->file_path, 404);
         abort_if(! Storage::disk('local')->exists($product->file_path), 404);
 
+        $extension = pathinfo($product->file_path, PATHINFO_EXTENSION) ?: 'zip';
+        $filename = Str::slug($item->product_name ?: $product->name)
+            . '.'
+            . strtolower($extension);
+
         return Storage::disk('local')->download(
             $product->file_path,
-            Str::slug($product->name) . '.zip'
+            $filename
         );
     }
 }

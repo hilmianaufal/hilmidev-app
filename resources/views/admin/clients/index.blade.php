@@ -14,7 +14,7 @@
                 </h1>
 
                 <p class="text-blue-50 mt-3">
-                    Kelola daftar client yang sudah register di HilmiDev.
+                    Kelola akun client dan member yang dibuat melalui admin HilmiDev.
                 </p>
             </div>
         </div>
@@ -88,7 +88,7 @@
 
                                     <p class="font-black text-slate-900">Belum ada client.</p>
                                     <p class="text-slate-500 text-sm mt-1">
-                                        User yang register sebagai client akan tampil di sini.
+                                        Akun client dan member yang dibuat admin akan tampil di sini.
                                     </p>
                                 </td>
                             </tr>

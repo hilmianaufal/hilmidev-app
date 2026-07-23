@@ -10,7 +10,8 @@ class PaymentController extends Controller
 {
     public function index()
     {
-        $orders = Order::with('user')
+        $orders = Order::query()
+            ->with('user')
             ->whereNotNull('payment_proof')
             ->latest()
             ->paginate(10);
@@ -27,6 +28,12 @@ class PaymentController extends Controller
 
     public function approve(Order $order)
     {
+        abort_unless(
+            $order->payment_status === 'review',
+            422,
+            'Pembayaran ini tidak sedang menunggu verifikasi.'
+        );
+
         $order->update([
             'payment_status' => 'paid',
             'status' => 'completed',
@@ -40,13 +47,20 @@ class PaymentController extends Controller
 
     public function reject(Request $request, Order $order)
     {
+        abort_unless(
+            $order->payment_status === 'review',
+            422,
+            'Pembayaran ini tidak sedang menunggu verifikasi.'
+        );
+
         $request->validate([
             'rejection_note' => ['nullable', 'string', 'max:1000'],
         ]);
 
         $order->update([
-            'payment_status' => 'rejected',
+            'payment_status' => 'failed',
             'status' => 'pending',
+            'paid_at' => null,
         ]);
 
         return redirect()

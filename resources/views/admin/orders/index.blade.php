@@ -44,8 +44,8 @@
                                 </td>
 
                                 <td class="px-5 py-5">
-                                    <p class="font-bold text-slate-800">{{ $order->user->name ?? '-' }}</p>
-                                    <p class="text-xs text-slate-500">{{ $order->user->email ?? '-' }}</p>
+                                    <p class="font-bold text-slate-800">{{ $order->user?->name ?? '-' }}</p>
+                                    <p class="text-xs text-slate-500">{{ $order->user?->email ?? '-' }}</p>
                                 </td>
 
                                 <td class="px-5 py-5">

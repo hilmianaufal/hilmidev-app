@@ -1,283 +1,289 @@
 <x-layouts.admin>
-    <div class="max-w-7xl mx-auto px-4 py-10">
-        <div class="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-blue-600 via-cyan-500 to-blue-400 p-8 md:p-10 text-white shadow-2xl shadow-blue-500/20 mb-8">
-            <div class="absolute -top-20 -right-20 w-72 h-72 bg-white/20 rounded-full blur-3xl"></div>
+    @php
+        $statistics = [
+            [
+                'label' => 'Total Produk',
+                'value' => number_format($totalProducts),
+                'icon' => 'package',
+                'class' => 'bg-blue-600',
+            ],
+            [
+                'label' => 'Produk Aktif',
+                'value' => number_format($activeProducts),
+                'icon' => 'badge-check',
+                'class' => 'bg-cyan-500',
+            ],
+            [
+                'label' => 'Kategori',
+                'value' => number_format($totalCategories),
+                'icon' => 'grid-3x3',
+                'class' => 'bg-indigo-500',
+            ],
+            [
+                'label' => 'Client',
+                'value' => number_format($totalClients),
+                'icon' => 'users',
+                'class' => 'bg-sky-500',
+            ],
+            [
+                'label' => 'Total Order',
+                'value' => number_format($totalOrders),
+                'icon' => 'shopping-cart',
+                'class' => 'bg-blue-700',
+            ],
+            [
+                'label' => 'Order Paid',
+                'value' => number_format($paidOrders),
+                'icon' => 'circle-check',
+                'class' => 'bg-emerald-500',
+            ],
+            [
+                'label' => 'Belum Bayar',
+                'value' => number_format($pendingOrders),
+                'icon' => 'clock',
+                'class' => 'bg-amber-500',
+            ],
+            [
+                'label' => 'Revenue',
+                'value' => 'Rp ' . number_format($totalRevenue, 0, ',', '.'),
+                'icon' => 'wallet',
+                'class' => 'bg-violet-500',
+            ],
+            [
+                'label' => 'Total Jasa',
+                'value' => number_format($totalServices),
+                'icon' => 'briefcase-business',
+                'class' => 'bg-blue-600',
+            ],
+            [
+                'label' => 'Project Request',
+                'value' => number_format($totalProjectRequests),
+                'icon' => 'folder-kanban',
+                'class' => 'bg-cyan-500',
+            ],
+            [
+                'label' => 'Project Pending',
+                'value' => number_format($pendingProjectRequests),
+                'icon' => 'hourglass',
+                'class' => 'bg-amber-500',
+            ],
+            [
+                'label' => 'Development',
+                'value' => number_format($developmentProjectRequests),
+                'icon' => 'rocket',
+                'class' => 'bg-indigo-500',
+            ],
+        ];
+    @endphp
 
-            <div class="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+    <div class="mx-auto max-w-7xl px-4 py-10">
+        <section class="relative mb-8 overflow-hidden rounded-[2rem] bg-gradient-to-br from-blue-700 via-blue-600 to-cyan-500 p-8 text-white shadow-2xl shadow-blue-500/20 md:p-10">
+            <div class="absolute -right-20 -top-20 h-72 w-72 rounded-full bg-white/15 blur-3xl"></div>
+
+            <div class="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div>
-                    <div class="inline-flex items-center gap-2 bg-white/15 border border-white/20 px-4 py-2 rounded-full mb-4">
-                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <div class="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/15 px-4 py-2">
+                        <i data-lucide="layout-dashboard" class="h-4 w-4"></i>
                         <span class="text-sm font-bold">Admin Control Center</span>
                     </div>
 
-                    <h1 class="text-3xl md:text-5xl font-black">Dashboard Admin</h1>
+                    <h1 class="text-3xl font-black md:text-5xl">
+                        Dashboard Admin
+                    </h1>
 
-                    <p class="text-blue-50 mt-3">
-                        Kelola produk, kategori, order, client, dan layanan HilmiDev.
+                    <p class="mt-3 text-blue-50">
+                        Ringkasan marketplace, layanan, pembayaran, dan project HilmiDev.
                     </p>
                 </div>
 
                 <a href="{{ route('admin.products.create') }}"
-                   class="inline-flex items-center justify-center gap-2 bg-white text-blue-700 px-6 py-4 rounded-2xl font-black shadow-xl shadow-blue-900/20">
-                    <i data-lucide="plus-circle" class="w-5 h-5"></i>
+                   class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-6 py-4 font-black text-blue-700 shadow-xl">
+                    <i data-lucide="plus-circle" class="h-5 w-5"></i>
                     Tambah Produk
                 </a>
             </div>
+        </section>
+
+        <section class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            @foreach ($statistics as $statistic)
+                <article class="rounded-[1.75rem] border border-blue-100 bg-white p-6 shadow-xl shadow-blue-500/5">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl text-white {{ $statistic['class'] }}">
+                        <i data-lucide="{{ $statistic['icon'] }}" class="h-6 w-6"></i>
+                    </div>
+
+                    <p class="mt-5 text-sm font-semibold text-slate-500">
+                        {{ $statistic['label'] }}
+                    </p>
+
+                    <h2 class="mt-2 break-words text-3xl font-black text-slate-950">
+                        {{ $statistic['value'] }}
+                    </h2>
+                </article>
+            @endforeach
+        </section>
+
+        <div class="mt-8 grid gap-8 xl:grid-cols-2">
+            <section class="overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-xl shadow-blue-500/5">
+                <header class="flex items-center justify-between border-b border-blue-50 p-6">
+                    <h2 class="font-black text-slate-950">Order Terbaru</h2>
+
+                    <a href="{{ route('admin.orders.index') }}"
+                       class="text-sm font-black text-blue-700">
+                        Lihat Semua
+                    </a>
+                </header>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-blue-50 text-left text-blue-700">
+                            <tr>
+                                <th class="px-5 py-4">Invoice</th>
+                                <th class="px-5 py-4">Client</th>
+                                <th class="px-5 py-4">Total</th>
+                                <th class="px-5 py-4">Status</th>
+                            </tr>
+                        </thead>
+
+                        <tbody class="divide-y divide-blue-50">
+                            @forelse ($latestOrders as $order)
+                                <tr>
+                                    <td class="px-5 py-4 font-bold text-slate-900">
+                                        {{ $order->invoice_number }}
+                                    </td>
+
+                                    <td class="px-5 py-4">
+                                        {{ $order->user?->name ?? 'User dihapus' }}
+                                    </td>
+
+                                    <td class="px-5 py-4 font-black text-blue-700">
+                                        Rp {{ number_format($order->total_price, 0, ',', '.') }}
+                                    </td>
+
+                                    <td class="px-5 py-4">
+                                        <span class="rounded-full px-3 py-1 text-xs font-bold {{ $order->payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700' }}">
+                                            {{ strtoupper($order->payment_status) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="px-5 py-12 text-center text-slate-500">
+                                        Belum ada order.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-xl shadow-blue-500/5">
+                <header class="flex items-center justify-between border-b border-blue-50 p-6">
+                    <h2 class="font-black text-slate-950">Produk Terbaru</h2>
+
+                    <a href="{{ route('admin.products.index') }}"
+                       class="text-sm font-black text-blue-700">
+                        Lihat Semua
+                    </a>
+                </header>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-blue-50 text-left text-blue-700">
+                            <tr>
+                                <th class="px-5 py-4">Produk</th>
+                                <th class="px-5 py-4">Kategori</th>
+                                <th class="px-5 py-4">Harga</th>
+                                <th class="px-5 py-4">Status</th>
+                            </tr>
+                        </thead>
+
+                        <tbody class="divide-y divide-blue-50">
+                            @forelse ($latestProducts as $product)
+                                <tr>
+                                    <td class="px-5 py-4 font-bold text-slate-900">
+                                        {{ $product->name }}
+                                    </td>
+
+                                    <td class="px-5 py-4">
+                                        {{ $product->category?->name ?? '-' }}
+                                    </td>
+
+                                    <td class="px-5 py-4 font-black text-blue-700">
+                                        Rp {{ number_format($product->final_price, 0, ',', '.') }}
+                                    </td>
+
+                                    <td class="px-5 py-4">
+                                        <span class="rounded-full px-3 py-1 text-xs font-bold {{ $product->is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700' }}">
+                                            {{ $product->is_active ? 'AKTIF' : 'NONAKTIF' }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="px-5 py-12 text-center text-slate-500">
+                                        Belum ada produk.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </section>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-            <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
-                <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-5">
-                    <i data-lucide="package" class="w-6 h-6"></i>
-                </div>
-                <p class="text-sm text-slate-500 font-semibold">Total Produk</p>
-                <h2 class="text-4xl font-black text-slate-900 mt-2">{{ $totalProducts }}</h2>
-            </div>
+        <section class="mt-8 overflow-hidden rounded-[2rem] border border-blue-100 bg-white shadow-xl shadow-blue-500/5">
+            <header class="flex items-center justify-between border-b border-blue-50 p-6">
+                <h2 class="font-black text-slate-950">Project Request Terbaru</h2>
 
-            <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
-                <div class="w-12 h-12 rounded-2xl bg-cyan-500 text-white flex items-center justify-center mb-5">
-                    <i data-lucide="badge-check" class="w-6 h-6"></i>
-                </div>
-                <p class="text-sm text-slate-500 font-semibold">Produk Aktif</p>
-                <h2 class="text-4xl font-black text-slate-900 mt-2">{{ $activeProducts }}</h2>
-            </div>
-
-            <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
-                <div class="w-12 h-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center mb-5">
-                    <i data-lucide="grid-3x3" class="w-6 h-6"></i>
-                </div>
-                <p class="text-sm text-slate-500 font-semibold">Kategori</p>
-                <h2 class="text-4xl font-black text-slate-900 mt-2">{{ $totalCategories }}</h2>
-            </div>
-
-            <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
-                <div class="w-12 h-12 rounded-2xl bg-sky-500 text-white flex items-center justify-center mb-5">
-                    <i data-lucide="users" class="w-6 h-6"></i>
-                </div>
-                <p class="text-sm text-slate-500 font-semibold">Client</p>
-                <h2 class="text-4xl font-black text-slate-900 mt-2">{{ $totalClients }}</h2>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-            <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
-                <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-5">
-                    <i data-lucide="shopping-cart" class="w-6 h-6"></i>
-                </div>
-                <p class="text-sm text-slate-500 font-semibold">Total Order</p>
-                <h2 class="text-4xl font-black text-slate-900 mt-2">{{ $totalOrders }}</h2>
-            </div>
-
-            <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
-                <div class="w-12 h-12 rounded-2xl bg-green-500 text-white flex items-center justify-center mb-5">
-                    <i data-lucide="badge-check" class="w-6 h-6"></i>
-                </div>
-                <p class="text-sm text-slate-500 font-semibold">Order Paid</p>
-                <h2 class="text-4xl font-black text-slate-900 mt-2">{{ $paidOrders }}</h2>
-            </div>
-
-            <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
-                <div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center mb-5">
-                    <i data-lucide="clock" class="w-6 h-6"></i>
-                </div>
-                <p class="text-sm text-slate-500 font-semibold">Belum Bayar</p>
-                <h2 class="text-4xl font-black text-slate-900 mt-2">{{ $pendingOrders }}</h2>
-            </div>
-
-            <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
-                <div class="w-12 h-12 rounded-2xl bg-cyan-500 text-white flex items-center justify-center mb-5">
-                    <i data-lucide="wallet" class="w-6 h-6"></i>
-                </div>
-                <p class="text-sm text-slate-500 font-semibold">Revenue</p>
-                <h2 class="text-2xl font-black text-blue-600 mt-3">
-                    Rp {{ number_format($totalRevenue, 0, ',', '.') }}
-                </h2>
-            </div>
-        </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-    <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
-        <div class="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center mb-5">
-            <i data-lucide="briefcase" class="w-6 h-6"></i>
-        </div>
-        <p class="text-sm text-slate-500 font-semibold">Total Jasa</p>
-        <h2 class="text-4xl font-black text-slate-900 mt-2">{{ $totalServices }}</h2>
-    </div>
-
-    <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
-        <div class="w-12 h-12 rounded-2xl bg-cyan-500 text-white flex items-center justify-center mb-5">
-            <i data-lucide="folder-kanban" class="w-6 h-6"></i>
-        </div>
-        <p class="text-sm text-slate-500 font-semibold">Project Request</p>
-        <h2 class="text-4xl font-black text-slate-900 mt-2">{{ $totalProjectRequests }}</h2>
-    </div>
-
-    <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
-        <div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center mb-5">
-            <i data-lucide="clock" class="w-6 h-6"></i>
-        </div>
-        <p class="text-sm text-slate-500 font-semibold">Project Pending</p>
-        <h2 class="text-4xl font-black text-slate-900 mt-2">{{ $pendingProjectRequests }}</h2>
-    </div>
-
-    <div class="bg-white border border-blue-100 rounded-[2rem] p-6 shadow-xl shadow-blue-500/5">
-        <div class="w-12 h-12 rounded-2xl bg-indigo-500 text-white flex items-center justify-center mb-5">
-            <i data-lucide="rocket" class="w-6 h-6"></i>
-        </div>
-        <p class="text-sm text-slate-500 font-semibold">Development</p>
-        <h2 class="text-4xl font-black text-slate-900 mt-2">{{ $developmentProjectRequests }}</h2>
-    </div>
-</div>
-        <div class="bg-white border border-blue-100 rounded-[2rem] overflow-hidden shadow-xl shadow-blue-500/5">
-            <div class="bg-white border border-blue-100 rounded-[2rem] overflow-hidden shadow-xl shadow-blue-500/5 mt-8">
-    <div class="p-6 border-b border-blue-50 flex items-center justify-between">
-        <h2 class="font-black text-slate-900">Order Terbaru</h2>
-
-        <a href="{{ route('admin.orders.index') }}" class="text-sm text-blue-600 font-black">
-            Lihat Semua
-        </a>
-    </div>
-
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-blue-50 text-blue-700">
-                <tr>
-                    <th class="px-5 py-4 text-left">Invoice</th>
-                    <th class="px-5 py-4 text-left">Client</th>
-                    <th class="px-5 py-4 text-left">Total</th>
-                    <th class="px-5 py-4 text-left">Payment</th>
-                </tr>
-            </thead>
-
-            <tbody class="divide-y divide-blue-50">
-                @forelse ($latestOrders as $order)
-                    <tr>
-                        <td class="px-5 py-4 font-bold text-slate-900">
-                            {{ $order->invoice_number }}
-                        </td>
-
-                        <td class="px-5 py-4">
-                            {{ $order->user->name ?? '-' }}
-                        </td>
-
-                        <td class="px-5 py-4 font-black text-blue-600">
-                            Rp {{ number_format($order->total_price, 0, ',', '.') }}
-                        </td>
-
-                        <td class="px-5 py-4">
-                            @if ($order->payment_status === 'paid')
-                                <span class="px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold">
-                                    PAID
-                                </span>
-                            @else
-                                <span class="px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold">
-                                    {{ strtoupper($order->payment_status) }}
-                                </span>
-                            @endif
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="4" class="px-5 py-12 text-center text-slate-500">
-                            Belum ada order.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</div>
-            <div class="p-6 border-b border-blue-50 flex items-center justify-between">
-                <h2 class="font-black text-slate-900">Produk Terbaru</h2>
-                <a href="{{ route('admin.products.index') }}" class="text-sm text-blue-600 font-black">Lihat Semua</a>
-            </div>
+                <a href="{{ route('admin.project-requests.index') }}"
+                   class="text-sm font-black text-blue-700">
+                    Lihat Semua
+                </a>
+            </header>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-sm">
-                    <thead class="bg-blue-50 text-blue-700">
+                    <thead class="bg-blue-50 text-left text-blue-700">
                         <tr>
-                            <th class="px-5 py-4 text-left">Produk</th>
-                            <th class="px-5 py-4 text-left">Kategori</th>
-                            <th class="px-5 py-4 text-left">Harga</th>
-                            <th class="px-5 py-4 text-left">Status</th>
+                            <th class="px-5 py-4">Project</th>
+                            <th class="px-5 py-4">Client</th>
+                            <th class="px-5 py-4">Layanan</th>
+                            <th class="px-5 py-4">Status</th>
                         </tr>
                     </thead>
 
                     <tbody class="divide-y divide-blue-50">
-                        @forelse ($latestProducts as $product)
+                        @forelse ($latestProjectRequests as $project)
                             <tr>
-                                <td class="px-5 py-4 font-bold">{{ $product->name }}</td>
-                                <td class="px-5 py-4">{{ $product->category->name ?? '-' }}</td>
-                                <td class="px-5 py-4 font-black text-blue-600">
-                                    Rp {{ number_format($product->final_price, 0, ',', '.') }}
+                                <td class="px-5 py-4 font-bold text-slate-900">
+                                    {{ $project->project_name }}
                                 </td>
+
                                 <td class="px-5 py-4">
-                                    @if ($product->is_active)
-                                        <span class="px-3 py-1 rounded-full bg-green-50 text-green-700 text-xs font-bold">Aktif</span>
-                                    @else
-                                        <span class="px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-bold">Nonaktif</span>
-                                    @endif
+                                    {{ $project->user?->name ?? 'User dihapus' }}
+                                </td>
+
+                                <td class="px-5 py-4">
+                                    {{ $project->service?->title ?? '-' }}
+                                </td>
+
+                                <td class="px-5 py-4">
+                                    <span class="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-700">
+                                        {{ strtoupper($project->status) }}
+                                    </span>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-5 py-12 text-center text-slate-500">Belum ada produk.</td>
+                                <td colspan="4" class="px-5 py-12 text-center text-slate-500">
+                                    Belum ada project request.
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
-                    
                 </table>
-                <div class="bg-white border border-blue-100 rounded-[2rem] overflow-hidden shadow-xl shadow-blue-500/5 mt-8">
-    <div class="p-6 border-b border-blue-50 flex items-center justify-between">
-        <h2 class="font-black text-slate-900">Project Request Terbaru</h2>
-
-        <a href="{{ route('admin.project-requests.index') }}" class="text-sm text-blue-600 font-black">
-            Lihat Semua
-        </a>
-    </div>
-
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-            <thead class="bg-blue-50 text-blue-700">
-                <tr>
-                    <th class="px-5 py-4 text-left">Project</th>
-                    <th class="px-5 py-4 text-left">Client</th>
-                    <th class="px-5 py-4 text-left">Layanan</th>
-                    <th class="px-5 py-4 text-left">Status</th>
-                </tr>
-            </thead>
-
-            <tbody class="divide-y divide-blue-50">
-                @forelse ($latestProjectRequests as $request)
-                    <tr>
-                        <td class="px-5 py-4 font-bold text-slate-900">
-                            {{ $request->project_name }}
-                        </td>
-
-                        <td class="px-5 py-4">
-                            {{ $request->user->name ?? '-' }}
-                        </td>
-
-                        <td class="px-5 py-4">
-                            {{ $request->service->title ?? '-' }}
-                        </td>
-
-                        <td class="px-5 py-4">
-                            <span class="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold">
-                                {{ strtoupper($request->status) }}
-                            </span>
-                        </td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="4" class="px-5 py-12 text-center text-slate-500">
-                            Belum ada project request.
-                        </td>
-                    </tr>
-                @endforelse
-            </tbody>
-        </table>
-    </div>
-</div>
             </div>
-        </div>
+        </section>
     </div>
 </x-layouts.admin>

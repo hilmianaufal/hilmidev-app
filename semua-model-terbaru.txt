@@ -1,0 +1,830 @@
+]633;E;{     echo "KUMPULAN MODEL TERBARU"\x3b     echo ""\x3b      find app/Models -type f -name "*.php" | sort | while IFS= read -r file\x3b     do         echo ""\x3b         echo "============================================================"\x3b         echo "FILE: $file"\x3b         echo "============================================================"\x3b         cat "$file"\x3b     done\x3b } > semua-model-terbaru.txt;eeea4059-04aa-4d66-9adf-7cf0543368da]633;CKUMPULAN MODEL TERBARU
+
+
+============================================================
+FILE: app/Models/Blog.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Blog extends Model
+{
+    //
+}
+
+============================================================
+FILE: app/Models/Category.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Category extends Model
+{
+    protected $fillable = [
+        'name',
+        'slug',
+        'icon',
+        'description',
+        'is_active',
+    ];
+
+    public function products(): HasMany
+    {
+        return $this->hasMany(Product::class);
+    }
+}
+============================================================
+FILE: app/Models/Course.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+
+class Course extends Model
+{
+    protected $fillable = [
+        'title', 'slug', 'subtitle', 'description', 'thumbnail', 'level',
+        'technology', 'estimated_minutes', 'is_published', 'is_featured', 'sort_order',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'estimated_minutes' => 'integer',
+            'is_published' => 'boolean',
+            'is_featured' => 'boolean',
+            'sort_order' => 'integer',
+        ];
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function modules()
+    {
+        return $this->hasMany(CourseModule::class)->orderBy('sort_order')->orderBy('id');
+    }
+
+    public function lessons()
+    {
+        return $this->hasManyThrough(
+            CourseLesson::class,
+            CourseModule::class,
+            'course_id',
+            'course_module_id'
+        );
+    }
+
+    public function enrollments()
+    {
+        return $this->hasMany(CourseEnrollment::class);
+    }
+
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query->where('is_published', true);
+    }
+
+    public function getFormattedDurationAttribute(): string
+    {
+        $hours = intdiv($this->estimated_minutes, 60);
+        $minutes = $this->estimated_minutes % 60;
+
+        return $hours > 0
+            ? $hours . ' jam' . ($minutes ? ' ' . $minutes . ' menit' : '')
+            : $minutes . ' menit';
+    }
+}
+
+============================================================
+FILE: app/Models/CourseEnrollment.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class CourseEnrollment extends Model
+{
+    protected $fillable = ['user_id', 'course_id', 'enrolled_at', 'completed_at'];
+
+    protected function casts(): array
+    {
+        return ['enrolled_at' => 'datetime', 'completed_at' => 'datetime'];
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
+}
+
+============================================================
+FILE: app/Models/CourseLesson.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+
+class CourseLesson extends Model
+{
+    protected $fillable = [
+        'course_module_id', 'title', 'slug', 'description', 'video_type',
+        'video_path', 'video_url', 'attachment_path', 'duration_minutes',
+        'is_preview', 'is_published', 'sort_order',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'duration_minutes' => 'integer',
+            'is_preview' => 'boolean',
+            'is_published' => 'boolean',
+            'sort_order' => 'integer',
+        ];
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function module()
+    {
+        return $this->belongsTo(CourseModule::class, 'course_module_id');
+    }
+
+    public function progress()
+    {
+        return $this->hasMany(LessonProgress::class);
+    }
+
+    public function scopePublished(Builder $query): Builder
+    {
+        return $query->where('is_published', true);
+    }
+
+    public function embedUrl(): ?string
+    {
+        if (! $this->video_url) {
+            return null;
+        }
+
+        $url = trim($this->video_url);
+
+        if ($this->video_type === 'youtube') {
+            if (str_contains($url, 'youtube.com/embed/')) {
+                return $url;
+            }
+
+            if (preg_match('~youtu\.be/([^?&/]+)~', $url, $m)) {
+                return 'https://www.youtube.com/embed/' . $m[1];
+            }
+
+            if (preg_match('~[?&]v=([^?&/]+)~', $url, $m)) {
+                return 'https://www.youtube.com/embed/' . $m[1];
+            }
+        }
+
+        if ($this->video_type === 'vimeo' && preg_match('~vimeo\.com/(?:video/)?(\d+)~', $url, $m)) {
+            return 'https://player.vimeo.com/video/' . $m[1];
+        }
+
+        return $url;
+    }
+}
+
+============================================================
+FILE: app/Models/CourseModule.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class CourseModule extends Model
+{
+    protected $fillable = ['course_id', 'title', 'description', 'sort_order'];
+
+    public function course()
+    {
+        return $this->belongsTo(Course::class);
+    }
+
+    public function lessons()
+    {
+        return $this->hasMany(CourseLesson::class)->orderBy('sort_order')->orderBy('id');
+    }
+}
+
+============================================================
+FILE: app/Models/LessonProgress.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class LessonProgress extends Model
+{
+    protected $table = 'lesson_progress';
+
+    protected $fillable = [
+        'user_id', 'course_lesson_id', 'watched_seconds',
+        'is_completed', 'completed_at',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'watched_seconds' => 'integer',
+            'is_completed' => 'boolean',
+            'completed_at' => 'datetime',
+        ];
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function lesson()
+    {
+        return $this->belongsTo(CourseLesson::class, 'course_lesson_id');
+    }
+}
+
+============================================================
+FILE: app/Models/Membership.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+
+class Membership extends Model
+{
+    protected $fillable = [
+        'user_id', 'membership_plan_id', 'status', 'starts_at',
+        'expires_at', 'activated_at', 'notes', 'created_by',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'starts_at' => 'datetime',
+            'expires_at' => 'datetime',
+            'activated_at' => 'datetime',
+        ];
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function plan()
+    {
+        return $this->belongsTo(MembershipPlan::class, 'membership_plan_id');
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query
+            ->where('status', 'active')
+            ->where(fn (Builder $q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+            ->where(fn (Builder $q) => $q->whereNull('expires_at')->orWhere('expires_at', '>', now()));
+    }
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active'
+            && (! $this->starts_at || $this->starts_at->lte(now()))
+            && (! $this->expires_at || $this->expires_at->gt(now()));
+    }
+}
+
+============================================================
+FILE: app/Models/MembershipPlan.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+
+class MembershipPlan extends Model
+{
+    protected $fillable = [
+        'name', 'slug', 'description', 'price', 'duration_days',
+        'features', 'is_active', 'is_featured',
+    ];
+
+    protected function casts(): array
+    {
+        return [
+            'price' => 'integer',
+            'duration_days' => 'integer',
+            'features' => 'array',
+            'is_active' => 'boolean',
+            'is_featured' => 'boolean',
+        ];
+    }
+
+    public function getRouteKeyName(): string
+    {
+        return 'slug';
+    }
+
+    public function memberships()
+    {
+        return $this->hasMany(Membership::class);
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->where('is_active', true);
+    }
+}
+
+============================================================
+FILE: app/Models/Order.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
+class Order extends Model
+{
+    protected $fillable = [
+        'invoice_number',
+        'user_id',
+        'total_price',
+        'status',
+        'payment_status',
+        'payment_method',
+        'payment_proof',
+        'paid_at',
+    ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(OrderItem::class);
+    }
+
+        protected function casts(): array
+    {
+        return [
+            'paid_at' => 'datetime',
+        ];
+}
+}
+============================================================
+FILE: app/Models/OrderItem.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class OrderItem extends Model
+{
+    protected $fillable = [
+        'order_id',
+        'product_id',
+        'product_name',
+        'price',
+    ];
+
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
+    public function product(): BelongsTo
+    {
+        return $this->belongsTo(Product::class);
+    }
+}
+============================================================
+FILE: app/Models/Portfolio.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Portfolio extends Model
+{
+    protected $fillable = [
+        'title',
+        'slug',
+        'category',
+        'client_name',
+        'project_url',
+        'thumbnail',
+        'gallery',
+        'short_description',
+        'description',
+        'tech_stack',
+        'is_featured',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'gallery' => 'array',
+        'tech_stack' => 'array',
+        'is_featured' => 'boolean',
+        'is_active' => 'boolean',
+    ];
+}
+============================================================
+FILE: app/Models/Post.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
+
+class Post extends Model
+{
+    protected $fillable = [
+        'title',
+        'slug',
+        'excerpt',
+        'content',
+        'thumbnail',
+        'meta_title',
+        'meta_description',
+        'is_published',
+        'published_at',
+        'user_id',
+    ];
+
+    protected $casts = [
+        'is_published' => 'boolean',
+        'published_at' => 'datetime',
+    ];
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::creating(function ($post) {
+            if (!$post->slug) {
+                $post->slug = Str::slug($post->title);
+            }
+        });
+    }
+
+    public function author()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
+}
+============================================================
+FILE: app/Models/Product.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
+class Product extends Model
+{
+    protected $fillable = [
+        'category_id',
+        'name',
+        'slug',
+        'thumbnail',
+        'screenshots',
+        'short_description',
+        'description',
+        'features',
+        'technology',
+        'demo_url',
+        'video_url',
+        'file_path',
+        'price',
+        'discount_price',
+        'stock',
+        'is_featured',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'screenshots' => 'array',
+        'features' => 'array',
+        'is_featured' => 'boolean',
+        'is_active' => 'boolean',
+        'price' => 'decimal:2',
+        'discount_price' => 'decimal:2',
+    ];
+
+    public function category(): BelongsTo
+    {
+        return $this->belongsTo(Category::class);
+    }
+
+    public function getFinalPriceAttribute()
+    {
+        return $this->discount_price ?? $this->price;
+    }
+
+
+    public function orderItems()
+    {
+        return $this->hasMany(\App\Models\OrderItem::class);
+    }
+}
+============================================================
+FILE: app/Models/Project.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class ProjectRequest extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'service_id',
+        'project_name',
+        'company_name',
+        'phone',
+        'budget',
+        'deadline',
+        'description',
+        'status',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
+    }
+}
+============================================================
+FILE: app/Models/ProjectRequest.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class ProjectRequest extends Model
+{
+    protected $fillable = [
+        'user_id',
+        'service_id',
+        'project_name',
+        'company_name',
+        'phone',
+        'budget',
+        'deadline',
+        'description',
+        'status',
+    ];
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function service()
+    {
+        return $this->belongsTo(Service::class);
+    }
+}
+============================================================
+FILE: app/Models/Service.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Service extends Model
+{
+    protected $fillable = [
+        'title',
+        'slug',
+        'icon',
+        'short_description',
+        'description',
+        'starting_price',
+        'features',
+        'thumbnail',
+        'is_featured',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'features' => 'array',
+        'is_featured' => 'boolean',
+        'is_active' => 'boolean',
+    ];
+}
+============================================================
+FILE: app/Models/Setting.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Setting extends Model
+{
+    //
+}
+
+============================================================
+FILE: app/Models/Testimonial.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Testimonial extends Model
+{
+    protected $fillable = [
+        'name',
+        'position',
+        'company',
+        'photo',
+        'review',
+        'rating',
+        'is_featured',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'is_featured' => 'boolean',
+        'is_active' => 'boolean',
+        'rating' => 'integer',
+    ];
+}
+============================================================
+FILE: app/Models/Ticket.php
+============================================================
+<?php
+
+namespace App\Models;
+
+use Illuminate\Database\Eloquent\Model;
+
+class Ticket extends Model
+{
+    //
+}
+
+============================================================
+FILE: app/Models/User.php
+============================================================
+<?php
+
+namespace App\Models;
+
+// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Database\Factories\UserFactory;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
+
+class User extends Authenticatable
+{
+    /** @use HasFactory<UserFactory> */
+    use HasFactory, Notifiable;
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var list<string>
+     */
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'role',
+    ];
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * The attributes that should be hidden for serialization.
+     *
+     * @var list<string>
+     */
+    protected $hidden = [
+        'password',
+        'remember_token',
+    ];
+
+    /**
+     * Get the attributes that should be cast.
+     *
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+        ];
+    }
+
+
+    public function orders()
+    {
+        return $this->hasMany(\App\Models\Order::class);
+    }
+
+
+
+    public function projectRequests()
+    {
+        return $this->hasMany(\App\Models\ProjectRequest::class);
+    }
+
+    public function memberships()
+    {
+        return $this->hasMany(\App\Models\Membership::class);
+    }
+
+    public function courseEnrollments()
+    {
+        return $this->hasMany(\App\Models\CourseEnrollment::class);
+    }
+
+    public function lessonProgress()
+    {
+        return $this->hasMany(\App\Models\LessonProgress::class);
+    }
+
+    public function activeMembership()
+    {
+        return $this->hasOne(\App\Models\Membership::class)
+            ->ofMany('id', 'max', fn ($query) => $query->active());
+    }
+
+    public function hasActiveMembership(): bool
+    {
+        return $this->memberships()->active()->exists();
+    }
+}

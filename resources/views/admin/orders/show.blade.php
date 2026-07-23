@@ -50,12 +50,12 @@
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="bg-blue-50 rounded-2xl p-4">
                             <p class="text-xs text-slate-500 font-bold mb-1">Nama</p>
-                            <p class="font-black text-slate-900">{{ $order->user->name ?? '-' }}</p>
+                            <p class="font-black text-slate-900">{{ $order->user?->name ?? '-' }}</p>
                         </div>
 
                         <div class="bg-blue-50 rounded-2xl p-4">
                             <p class="text-xs text-slate-500 font-bold mb-1">Email</p>
-                            <p class="font-black text-slate-900">{{ $order->user->email ?? '-' }}</p>
+                            <p class="font-black text-slate-900">{{ $order->user?->email ?? '-' }}</p>
                         </div>
 
                         <div class="bg-blue-50 rounded-2xl p-4">
@@ -101,7 +101,7 @@
                                     <div>
                                         <p class="font-black text-slate-900">{{ $item->product_name }}</p>
                                         <p class="text-sm text-slate-500">
-                                            {{ $item->product->technology ?? 'Source Code Premium' }}
+                                            {{ $item->product?->technology ?? 'Source Code Premium' }}
                                         </p>
                                     </div>
                                 </div>

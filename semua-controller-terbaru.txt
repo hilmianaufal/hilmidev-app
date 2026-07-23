@@ -1,0 +1,3097 @@
+]633;E;{     echo "KUMPULAN CONTROLLER TERBARU"\x3b     echo ""\x3b      find app/Http/Controllers -type f -name "*.php" | sort | while IFS= read -r file\x3b     do         echo ""\x3b         echo "============================================================"\x3b         echo "FILE: $file"\x3b         echo "============================================================"\x3b         cat "$file"\x3b     done\x3b } > semua-controller-terbaru.txt;eeea4059-04aa-4d66-9adf-7cf0543368da]633;CKUMPULAN CONTROLLER TERBARU
+
+
+============================================================
+FILE: app/Http/Controllers/Admin/CategoryController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Category;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+
+class CategoryController extends Controller
+{
+    public function index()
+    {
+        $categories = Category::withCount('products')->latest()->paginate(10);
+
+        return view('admin.categories.index', compact('categories'));
+    }
+
+    public function create()
+    {
+        return view('admin.categories.create');
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:categories,name'],
+            'icon' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $data['slug'] = Str::slug($data['name']);
+        $data['is_active'] = $request->boolean('is_active');
+
+        Category::create($data);
+
+        return redirect()
+            ->route('admin.categories.index')
+            ->with('success', 'Kategori berhasil ditambahkan.');
+    }
+
+    public function edit(Category $category)
+    {
+        return view('admin.categories.edit', compact('category'));
+    }
+
+    public function update(Request $request, Category $category)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255', 'unique:categories,name,' . $category->id],
+            'icon' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        if ($request->name !== $category->name) {
+            $data['slug'] = Str::slug($data['name']);
+        }
+
+        $data['is_active'] = $request->boolean('is_active');
+
+        $category->update($data);
+
+        return redirect()
+            ->route('admin.categories.index')
+            ->with('success', 'Kategori berhasil diperbarui.');
+    }
+
+    public function destroy(Category $category)
+    {
+        if ($category->products()->exists()) {
+            return back()->with('error', 'Kategori tidak bisa dihapus karena masih memiliki produk.');
+        }
+
+        $category->delete();
+
+        return redirect()
+            ->route('admin.categories.index')
+            ->with('success', 'Kategori berhasil dihapus.');
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Admin/ClientController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+
+class ClientController extends Controller
+{
+    public function index()
+    {
+        $clients = User::withCount(['orders', 'projectRequests'])
+            ->where('role', '!=', 'admin')
+            ->latest()
+            ->paginate(15);
+
+        return view('admin.clients.index', compact('clients'));
+    }
+
+
+    public function show(User $user)
+    {
+        abort_if($user->role === 'admin', 404);
+
+        $user->load([
+            'orders.items.product',
+            'projectRequests.service',
+        ]);
+
+        $totalSpent = $user->orders()
+            ->where('payment_status', 'paid')
+            ->sum('total_price');
+
+        return view('admin.clients.show', compact('user', 'totalSpent'));
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Admin/CourseController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+
+class CourseController extends Controller
+{
+    public function index(Request $request)
+    {
+        $search = trim((string) $request->get('q', ''));
+
+        $courses = Course::query()
+            ->withCount(['modules', 'lessons'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($builder) use ($search) {
+                    $builder
+                        ->where('title', 'like', "%{$search}%")
+                        ->orWhere('technology', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('sort_order')
+            ->latest()
+            ->paginate(12)
+            ->withQueryString();
+
+        return view('admin.courses.index', compact('courses', 'search'));
+    }
+
+    public function create()
+    {
+        return view('admin.courses.create');
+    }
+
+    public function store(Request $request)
+    {
+        $data = $this->validatedData($request);
+
+        if ($request->hasFile('thumbnail')) {
+            $data['thumbnail'] = $request->file('thumbnail')
+                ->store('courses/thumbnails', 'public');
+        }
+
+        Course::create($data);
+
+        return redirect()
+            ->route('admin.courses.index')
+            ->with('success', 'Kelas coding berhasil dibuat.');
+    }
+
+    public function edit(Course $course)
+    {
+        $course->load('modules.lessons');
+
+        return view('admin.courses.edit', compact('course'));
+    }
+
+    public function update(Request $request, Course $course)
+    {
+        $data = $this->validatedData($request, $course);
+
+        if ($request->hasFile('thumbnail')) {
+            if ($course->thumbnail) {
+                Storage::disk('public')->delete($course->thumbnail);
+            }
+
+            $data['thumbnail'] = $request->file('thumbnail')
+                ->store('courses/thumbnails', 'public');
+        }
+
+        $course->update($data);
+
+        return back()->with('success', 'Informasi kelas berhasil diperbarui.');
+    }
+
+    public function destroy(Course $course)
+    {
+        if ($course->thumbnail) {
+            Storage::disk('public')->delete($course->thumbnail);
+        }
+
+        foreach ($course->lessons as $lesson) {
+            if ($lesson->video_path) {
+                Storage::disk('local')->delete($lesson->video_path);
+            }
+
+            if ($lesson->attachment_path) {
+                Storage::disk('local')->delete($lesson->attachment_path);
+            }
+        }
+
+        $course->delete();
+
+        return back()->with('success', 'Kelas coding berhasil dihapus.');
+    }
+
+    private function validatedData(Request $request, ?Course $course = null): array
+    {
+        $data = $request->validate([
+            'title' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('courses', 'title')->ignore($course?->id),
+            ],
+            'subtitle' => ['nullable', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'level' => ['required', 'in:pemula,menengah,mahir'],
+            'technology' => ['nullable', 'string', 'max:255'],
+            'estimated_minutes' => ['nullable', 'integer', 'min:0'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'thumbnail' => ['nullable', 'image', 'max:4096'],
+            'is_published' => ['nullable', 'boolean'],
+            'is_featured' => ['nullable', 'boolean'],
+        ]);
+
+        $data['slug'] = Str::slug($data['title'])
+            . ($course ? '' : '-' . Str::lower(Str::random(4)));
+        $data['estimated_minutes'] = $data['estimated_minutes'] ?? 0;
+        $data['sort_order'] = $data['sort_order'] ?? 0;
+        $data['is_published'] = $request->boolean('is_published');
+        $data['is_featured'] = $request->boolean('is_featured');
+
+        return $data;
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Admin/CourseLessonController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\CourseLesson;
+use App\Models\CourseModule;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
+class CourseLessonController extends Controller
+{
+    public function store(Request $request, CourseModule $module)
+    {
+        $data = $this->validatedData($request);
+        $data['slug'] = Str::slug($data['title']) . '-' . Str::lower(Str::random(6));
+        $this->handleUploads($request, $data);
+
+        $module->lessons()->create($data);
+
+        return back()->with('success', 'Video pembelajaran berhasil ditambahkan.');
+    }
+
+    public function update(Request $request, CourseLesson $lesson)
+    {
+        $data = $this->validatedData($request);
+
+        if ($lesson->title !== $data['title']) {
+            $data['slug'] = Str::slug($data['title']) . '-' . Str::lower(Str::random(6));
+        }
+
+        $this->handleUploads($request, $data, $lesson);
+        $lesson->update($data);
+
+        return back()->with('success', 'Video pembelajaran berhasil diperbarui.');
+    }
+
+    public function destroy(CourseLesson $lesson)
+    {
+        if ($lesson->video_path) {
+            Storage::disk('local')->delete($lesson->video_path);
+        }
+
+        if ($lesson->attachment_path) {
+            Storage::disk('local')->delete($lesson->attachment_path);
+        }
+
+        $lesson->delete();
+
+        return back()->with('success', 'Materi pembelajaran berhasil dihapus.');
+    }
+
+    private function validatedData(Request $request): array
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'video_type' => ['required', 'in:upload,youtube,vimeo,external'],
+            'video_url' => ['nullable', 'url'],
+            'video_file' => ['nullable', 'file', 'mimes:mp4,mov,webm,m4v', 'max:512000'],
+            'attachment' => ['nullable', 'file', 'mimes:zip,rar,7z,pdf,doc,docx,xls,xlsx', 'max:102400'],
+            'duration_minutes' => ['nullable', 'integer', 'min:0'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+            'is_preview' => ['nullable', 'boolean'],
+            'is_published' => ['nullable', 'boolean'],
+        ]);
+
+        $data['duration_minutes'] = $data['duration_minutes'] ?? 0;
+        $data['sort_order'] = $data['sort_order'] ?? 0;
+        $data['is_preview'] = $request->boolean('is_preview');
+        $data['is_published'] = $request->boolean('is_published');
+
+        unset($data['video_file'], $data['attachment']);
+
+        return $data;
+    }
+
+    private function handleUploads(
+        Request $request,
+        array &$data,
+        ?CourseLesson $lesson = null
+    ): void {
+        if ($request->hasFile('video_file')) {
+            if ($lesson?->video_path) {
+                Storage::disk('local')->delete($lesson->video_path);
+            }
+
+            $data['video_path'] = $request->file('video_file')
+                ->store('courses/videos', 'local');
+            $data['video_url'] = null;
+            $data['video_type'] = 'upload';
+        }
+
+        if ($request->hasFile('attachment')) {
+            if ($lesson?->attachment_path) {
+                Storage::disk('local')->delete($lesson->attachment_path);
+            }
+
+            $data['attachment_path'] = $request->file('attachment')
+                ->store('courses/attachments', 'local');
+        }
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Admin/CourseModuleController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\CourseModule;
+use Illuminate\Http\Request;
+
+class CourseModuleController extends Controller
+{
+    public function store(Request $request, Course $course)
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        $course->modules()->create([
+            ...$data,
+            'sort_order' => $data['sort_order'] ?? 0,
+        ]);
+
+        return back()->with('success', 'Modul kelas berhasil ditambahkan.');
+    }
+
+    public function update(Request $request, CourseModule $module)
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'description' => ['nullable', 'string'],
+            'sort_order' => ['nullable', 'integer', 'min:0'],
+        ]);
+
+        $module->update([
+            ...$data,
+            'sort_order' => $data['sort_order'] ?? 0,
+        ]);
+
+        return back()->with('success', 'Modul kelas berhasil diperbarui.');
+    }
+
+    public function destroy(CourseModule $module)
+    {
+        $module->delete();
+
+        return back()->with('success', 'Modul kelas berhasil dihapus.');
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Admin/DashboardController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Category;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\ProjectRequest;
+use App\Models\Service;
+use App\Models\User;
+
+class DashboardController extends Controller
+{
+    public function index()
+    {
+        return view('admin.dashboard', [
+            'totalProducts' => Product::count(),
+            'activeProducts' => Product::where('is_active', true)->count(),
+            'totalCategories' => Category::count(),
+            'totalClients' => User::where('role', 'client')->count(),
+
+            'totalServices' => Service::count(),
+            'totalProjectRequests' => ProjectRequest::count(),
+            'pendingProjectRequests' => ProjectRequest::where('status', 'pending')->count(),
+            'developmentProjectRequests' => ProjectRequest::where('status', 'development')->count(),
+
+            'totalOrders' => Order::count(),
+            'paidOrders' => Order::where('payment_status', 'paid')->count(),
+            'pendingOrders' => Order::where('payment_status', 'unpaid')->count(),
+            'totalRevenue' => Order::where('payment_status', 'paid')->sum('total_price'),
+
+            'latestProducts' => Product::with('category')->latest()->limit(5)->get(),
+            'latestOrders' => Order::with('user')->latest()->limit(5)->get(),
+            'latestProjectRequests' => ProjectRequest::with(['user', 'service'])->latest()->limit(5)->get(),
+        ]);
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Admin/MemberController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\MembershipPlan;
+use App\Models\User;
+use Carbon\Carbon;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
+
+class MemberController extends Controller
+{
+    public function index(Request $request)
+    {
+        $search = trim((string) $request->get('q', ''));
+
+        $members = User::query()
+            ->where('role', '!=', 'admin')
+            ->with(['memberships.plan'])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($builder) use ($search) {
+                    $builder
+                        ->where('name', 'like', "%{$search}%")
+                        ->orWhere('email', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.members.index', compact('members', 'search'));
+    }
+
+    public function create()
+    {
+        $plans = MembershipPlan::active()->orderBy('price')->get();
+
+        return view('admin.members.create', compact('plans'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'membership_plan_id' => ['required', 'exists:membership_plans,id'],
+            'status' => ['required', 'in:pending,active,suspended,expired,cancelled'],
+            'starts_at' => ['nullable', 'date'],
+            'expires_at' => ['nullable', 'date', 'after:starts_at'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $user = new User();
+        $user->forceFill([
+            'name' => $data['name'],
+            'email' => $data['email'],
+            'password' => Hash::make($data['password']),
+            'role' => 'client',
+        ])->save();
+
+        $this->saveMembership($user, $data);
+
+        return redirect()
+            ->route('admin.members.index')
+            ->with('success', 'Akun member berhasil dibuat.');
+    }
+
+    public function edit(User $user)
+    {
+        abort_if($user->role === 'admin', 404);
+
+        $user->load('memberships.plan');
+        $plans = MembershipPlan::active()->orderBy('price')->get();
+        $membership = $user->memberships->sortByDesc('id')->first();
+
+        return view('admin.members.edit', compact('user', 'plans', 'membership'));
+    }
+
+    public function update(Request $request, User $user)
+    {
+        abort_if($user->role === 'admin', 404);
+
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => [
+                'required',
+                'email',
+                'max:255',
+                Rule::unique('users', 'email')->ignore($user->id),
+            ],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
+            'membership_plan_id' => ['required', 'exists:membership_plans,id'],
+            'status' => ['required', 'in:pending,active,suspended,expired,cancelled'],
+            'starts_at' => ['nullable', 'date'],
+            'expires_at' => ['nullable', 'date', 'after:starts_at'],
+            'notes' => ['nullable', 'string'],
+        ]);
+
+        $user->forceFill([
+            'name' => $data['name'],
+            'email' => $data['email'],
+        ]);
+
+        if (! empty($data['password'])) {
+            $user->password = Hash::make($data['password']);
+        }
+
+        $user->save();
+
+        $this->saveMembership($user, $data);
+
+        return redirect()
+            ->route('admin.members.index')
+            ->with('success', 'Data dan akses member berhasil diperbarui.');
+    }
+
+    public function destroy(User $user)
+    {
+        abort_if($user->role === 'admin', 404);
+
+        $user->memberships()
+            ->whereIn('status', ['pending', 'active'])
+            ->update(['status' => 'cancelled']);
+
+        return back()->with('success', 'Akses membership berhasil dinonaktifkan.');
+    }
+
+    private function saveMembership(User $user, array $data): void
+    {
+        $plan = MembershipPlan::findOrFail($data['membership_plan_id']);
+        $startsAt = ! empty($data['starts_at'])
+            ? Carbon::parse($data['starts_at'])
+            : now();
+
+        $expiresAt = ! empty($data['expires_at'])
+            ? Carbon::parse($data['expires_at'])
+            : ($plan->duration_days
+                ? $startsAt->copy()->addDays($plan->duration_days)
+                : null);
+
+        $membership = $user->memberships()->latest('id')->first();
+
+        $payload = [
+            'membership_plan_id' => $plan->id,
+            'status' => $data['status'],
+            'starts_at' => $startsAt,
+            'expires_at' => $expiresAt,
+            'activated_at' => $data['status'] === 'active'
+                ? ($membership?->activated_at ?: now())
+                : null,
+            'notes' => $data['notes'] ?? null,
+            'created_by' => auth()->id(),
+        ];
+
+        if ($membership) {
+            $membership->update($payload);
+        } else {
+            $user->memberships()->create($payload);
+        }
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Admin/MembershipPlanController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\MembershipPlan;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
+
+class MembershipPlanController extends Controller
+{
+    public function index()
+    {
+        $plans = MembershipPlan::withCount('memberships')->latest()->paginate(12);
+
+        return view('admin.membership-plans.index', compact('plans'));
+    }
+
+    public function create()
+    {
+        return view('admin.membership-plans.create');
+    }
+
+    public function store(Request $request)
+    {
+        MembershipPlan::create($this->validatedData($request));
+
+        return redirect()
+            ->route('admin.membership-plans.index')
+            ->with('success', 'Paket membership berhasil ditambahkan.');
+    }
+
+    public function edit(MembershipPlan $membershipPlan)
+    {
+        return view('admin.membership-plans.edit', compact('membershipPlan'));
+    }
+
+    public function update(Request $request, MembershipPlan $membershipPlan)
+    {
+        $membershipPlan->update($this->validatedData($request, $membershipPlan));
+
+        return redirect()
+            ->route('admin.membership-plans.index')
+            ->with('success', 'Paket membership berhasil diperbarui.');
+    }
+
+    public function destroy(MembershipPlan $membershipPlan)
+    {
+        if ($membershipPlan->memberships()->exists()) {
+            $membershipPlan->update(['is_active' => false]);
+
+            return back()->with(
+                'success',
+                'Paket sudah digunakan sehingga dinonaktifkan, bukan dihapus.'
+            );
+        }
+
+        $membershipPlan->delete();
+
+        return back()->with('success', 'Paket membership berhasil dihapus.');
+    }
+
+    private function validatedData(
+        Request $request,
+        ?MembershipPlan $membershipPlan = null
+    ): array {
+        $data = $request->validate([
+            'name' => [
+                'required',
+                'string',
+                'max:255',
+                Rule::unique('membership_plans', 'name')->ignore($membershipPlan?->id),
+            ],
+            'description' => ['nullable', 'string'],
+            'price' => ['required', 'integer', 'min:0'],
+            'duration_days' => ['nullable', 'integer', 'min:1'],
+            'features' => ['nullable', 'string'],
+            'is_active' => ['nullable', 'boolean'],
+            'is_featured' => ['nullable', 'boolean'],
+        ]);
+
+        $data['slug'] = Str::slug($data['name'])
+            . ($membershipPlan ? '' : '-' . Str::lower(Str::random(4)));
+
+        $data['features'] = $request->filled('features')
+            ? array_values(array_filter(array_map(
+                'trim',
+                preg_split('/\r\n|\r|\n/', (string) $request->features)
+            )))
+            : null;
+
+        $data['is_active'] = $request->boolean('is_active');
+        $data['is_featured'] = $request->boolean('is_featured');
+
+        return $data;
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Admin/OrderController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+use Illuminate\Http\Request;
+
+class OrderController extends Controller
+{
+    public function index()
+    {
+        $orders = Order::with(['user', 'items.product'])
+            ->latest()
+            ->paginate(10);
+
+        return view('admin.orders.index', compact('orders'));
+    }
+
+    public function show(Order $order)
+    {
+        $order->load(['user', 'items.product']);
+
+        return view('admin.orders.show', compact('order'));
+    }
+
+    public function updateStatus(Request $request, Order $order)
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:pending,processing,completed,cancelled'],
+            'payment_status' => ['required', 'in:unpaid,review,paid,failed,refunded'],
+        ]);
+
+        $order->update([
+                'status' => $data['status'],
+                'payment_status' => $data['payment_status'],
+                'paid_at' => $data['payment_status'] === 'paid' ? now() : $order->paid_at,
+            ]);
+
+        return redirect()
+            ->route('admin.orders.show', $order)
+            ->with('success', 'Status order berhasil diperbarui.');
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Admin/PaymentController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+use Illuminate\Http\Request;
+
+class PaymentController extends Controller
+{
+    public function index()
+    {
+        $orders = Order::with('user')
+            ->whereNotNull('payment_proof')
+            ->latest()
+            ->paginate(10);
+
+        return view('admin.payments.index', compact('orders'));
+    }
+
+    public function show(Order $order)
+    {
+        $order->load(['user', 'items.product']);
+
+        return view('admin.payments.show', compact('order'));
+    }
+
+    public function approve(Order $order)
+    {
+        $order->update([
+            'payment_status' => 'paid',
+            'status' => 'completed',
+            'paid_at' => now(),
+        ]);
+
+        return redirect()
+            ->route('admin.payments.show', $order)
+            ->with('success', 'Pembayaran berhasil disetujui.');
+    }
+
+    public function reject(Request $request, Order $order)
+    {
+        $request->validate([
+            'rejection_note' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $order->update([
+            'payment_status' => 'failed',
+            'status' => 'pending',
+        ]);
+
+        return redirect()
+            ->route('admin.payments.show', $order)
+            ->with('success', 'Pembayaran berhasil ditolak.');
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Admin/PortfolioController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Portfolio;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
+class PortfolioController extends Controller
+{
+    public function index()
+    {
+        $portfolios = Portfolio::latest()->paginate(10);
+
+        return view('admin.portfolios.index', compact('portfolios'));
+    }
+
+    public function create()
+    {
+        return view('admin.portfolios.create');
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:255'],
+            'client_name' => ['nullable', 'string', 'max:255'],
+            'project_url' => ['nullable', 'url'],
+            'short_description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string'],
+            'tech_stack' => ['nullable', 'string'],
+            'thumbnail' => ['nullable', 'image', 'max:2048'],
+            'gallery.*' => ['nullable', 'image', 'max:2048'],
+            'is_featured' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $data['slug'] = Str::slug($data['title']) . '-' . Str::random(5);
+
+        $data['tech_stack'] = $request->tech_stack
+            ? array_values(array_filter(array_map('trim', explode("\n", $request->tech_stack))))
+            : null;
+
+        $data['is_featured'] = $request->boolean('is_featured');
+        $data['is_active'] = $request->boolean('is_active');
+
+        if ($request->hasFile('thumbnail')) {
+            $data['thumbnail'] = $request->file('thumbnail')
+                ->store('portfolios/thumbnails', 'public');
+        }
+
+        if ($request->hasFile('gallery')) {
+            $gallery = [];
+
+            foreach ($request->file('gallery') as $image) {
+                $gallery[] = $image->store('portfolios/gallery', 'public');
+            }
+
+            $data['gallery'] = $gallery;
+        }
+
+        Portfolio::create($data);
+
+        return redirect()
+            ->route('admin.portfolios.index')
+            ->with('success', 'Portfolio berhasil ditambahkan.');
+    }
+
+    public function edit(Portfolio $portfolio)
+    {
+        return view('admin.portfolios.edit', compact('portfolio'));
+    }
+
+    public function update(Request $request, Portfolio $portfolio)
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'category' => ['nullable', 'string', 'max:255'],
+            'client_name' => ['nullable', 'string', 'max:255'],
+            'project_url' => ['nullable', 'url'],
+            'short_description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string'],
+            'tech_stack' => ['nullable', 'string'],
+            'thumbnail' => ['nullable', 'image', 'max:2048'],
+            'gallery.*' => ['nullable', 'image', 'max:2048'],
+            'is_featured' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        if ($request->title !== $portfolio->title) {
+            $data['slug'] = Str::slug($request->title) . '-' . Str::random(5);
+        }
+
+        $data['tech_stack'] = $request->tech_stack
+            ? array_values(array_filter(array_map('trim', explode("\n", $request->tech_stack))))
+            : null;
+
+        $data['is_featured'] = $request->boolean('is_featured');
+        $data['is_active'] = $request->boolean('is_active');
+
+        if ($request->hasFile('thumbnail')) {
+            if ($portfolio->thumbnail) {
+                Storage::disk('public')->delete($portfolio->thumbnail);
+            }
+
+            $data['thumbnail'] = $request->file('thumbnail')
+                ->store('portfolios/thumbnails', 'public');
+        }
+
+        if ($request->hasFile('gallery')) {
+            if ($portfolio->gallery) {
+                foreach ($portfolio->gallery as $image) {
+                    Storage::disk('public')->delete($image);
+                }
+            }
+
+            $gallery = [];
+
+            foreach ($request->file('gallery') as $image) {
+                $gallery[] = $image->store('portfolios/gallery', 'public');
+            }
+
+            $data['gallery'] = $gallery;
+        }
+
+        $portfolio->update($data);
+
+        return redirect()
+            ->route('admin.portfolios.index')
+            ->with('success', 'Portfolio berhasil diperbarui.');
+    }
+
+    public function destroy(Portfolio $portfolio)
+    {
+        if ($portfolio->thumbnail) {
+            Storage::disk('public')->delete($portfolio->thumbnail);
+        }
+
+        if ($portfolio->gallery) {
+            foreach ($portfolio->gallery as $image) {
+                Storage::disk('public')->delete($image);
+            }
+        }
+
+        $portfolio->delete();
+
+        return redirect()
+            ->route('admin.portfolios.index')
+            ->with('success', 'Portfolio berhasil dihapus.');
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Admin/PostController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Post;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
+class PostController extends Controller
+{
+    public function index()
+    {
+        $posts = Post::with('author')
+            ->latest()
+            ->paginate(10);
+
+        return view('admin.posts.index', compact('posts'));
+    }
+
+    public function create()
+    {
+        return view('admin.posts.create');
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'excerpt' => ['nullable', 'string'],
+            'content' => ['required', 'string'],
+            'thumbnail' => ['nullable', 'image', 'max:2048'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string'],
+            'is_published' => ['nullable', 'boolean'],
+        ]);
+
+        $data['user_id'] = auth()->id();
+        $data['slug'] = Str::slug($data['title']) . '-' . Str::random(5);
+        $data['is_published'] = $request->boolean('is_published');
+        $data['published_at'] = $data['is_published'] ? now() : null;
+
+        if ($request->hasFile('thumbnail')) {
+            $data['thumbnail'] = $request->file('thumbnail')
+                ->store('posts/thumbnails', 'public');
+        }
+
+        Post::create($data);
+
+        return redirect()
+            ->route('admin.posts.index')
+            ->with('success', 'Artikel blog berhasil ditambahkan.');
+    }
+
+    public function edit(Post $post)
+    {
+        return view('admin.posts.edit', compact('post'));
+    }
+
+    public function update(Request $request, Post $post)
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'excerpt' => ['nullable', 'string'],
+            'content' => ['required', 'string'],
+            'thumbnail' => ['nullable', 'image', 'max:2048'],
+            'meta_title' => ['nullable', 'string', 'max:255'],
+            'meta_description' => ['nullable', 'string'],
+            'is_published' => ['nullable', 'boolean'],
+        ]);
+
+        if ($request->title !== $post->title) {
+            $data['slug'] = Str::slug($request->title) . '-' . Str::random(5);
+        }
+
+        $data['is_published'] = $request->boolean('is_published');
+
+        if ($data['is_published'] && ! $post->published_at) {
+            $data['published_at'] = now();
+        }
+
+        if (! $data['is_published']) {
+            $data['published_at'] = null;
+        }
+
+        if ($request->hasFile('thumbnail')) {
+            if ($post->thumbnail) {
+                Storage::disk('public')->delete($post->thumbnail);
+            }
+
+            $data['thumbnail'] = $request->file('thumbnail')
+                ->store('posts/thumbnails', 'public');
+        }
+
+        $post->update($data);
+
+        return redirect()
+            ->route('admin.posts.index')
+            ->with('success', 'Artikel blog berhasil diperbarui.');
+    }
+
+    public function destroy(Post $post)
+    {
+        if ($post->thumbnail) {
+            Storage::disk('public')->delete($post->thumbnail);
+        }
+
+        $post->delete();
+
+        return redirect()
+            ->route('admin.posts.index')
+            ->with('success', 'Artikel blog berhasil dihapus.');
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Admin/ProductController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Category;
+use App\Models\Product;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
+class ProductController extends Controller
+{
+    public function index()
+    {
+        $products = Product::with('category')->latest()->paginate(10);
+
+        return view('admin.products.index', compact('products'));
+    }
+
+    public function create()
+    {
+        $categories = Category::where('is_active', true)->get();
+
+        return view('admin.products.create', compact('categories'));
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'category_id' => ['required', 'exists:categories,id'],
+            'name' => ['required', 'string', 'max:255'],
+            'short_description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string'],
+            'features' => ['nullable', 'string'],
+            'technology' => ['nullable', 'string', 'max:255'],
+            'demo_url' => ['nullable', 'url'],
+            'video_url' => ['nullable', 'url'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'discount_price' => ['nullable', 'numeric', 'min:0'],
+            'thumbnail' => ['nullable', 'image', 'max:2048'],
+            'file_path' => ['nullable', 'file', 'mimes:zip,rar,7z', 'max:51200'],
+            'is_featured' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $data['slug'] = Str::slug($data['name']) . '-' . Str::random(5);
+
+        $data['features'] = $request->features
+            ? array_values(array_filter(array_map('trim', explode("\n", $request->features))))
+            : null;
+
+        $data['is_featured'] = $request->boolean('is_featured');
+        $data['is_active'] = $request->boolean('is_active');
+
+        if ($request->hasFile('thumbnail')) {
+            $data['thumbnail'] = $request->file('thumbnail')
+                ->store('products/thumbnails', 'public');
+        }
+
+        if ($request->hasFile('file_path')) {
+            $data['file_path'] = $request->file('file_path')
+                ->store('products/files', 'local');
+        }
+
+        Product::create($data);
+
+        return redirect()
+            ->route('admin.products.index')
+            ->with('success', 'Produk berhasil ditambahkan.');
+    }
+
+    public function show(Product $product)
+    {
+        return redirect()->route('products.show', $product);
+    }
+
+    public function edit(Product $product)
+    {
+        $categories = Category::where('is_active', true)->get();
+
+        return view('admin.products.edit', compact('product', 'categories'));
+    }
+
+    public function update(Request $request, Product $product)
+    {
+        $data = $request->validate([
+            'category_id' => ['required', 'exists:categories,id'],
+            'name' => ['required', 'string', 'max:255'],
+            'short_description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string'],
+            'features' => ['nullable', 'string'],
+            'technology' => ['nullable', 'string', 'max:255'],
+            'demo_url' => ['nullable', 'url'],
+            'video_url' => ['nullable', 'url'],
+            'price' => ['required', 'numeric', 'min:0'],
+            'discount_price' => ['nullable', 'numeric', 'min:0'],
+            'thumbnail' => ['nullable', 'image', 'max:2048'],
+            'file_path' => ['nullable', 'file', 'mimes:zip,rar,7z', 'max:51200'],
+            'is_featured' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        if ($request->name !== $product->name) {
+            $data['slug'] = Str::slug($request->name) . '-' . Str::random(5);
+        }
+
+        $data['features'] = $request->features
+            ? array_values(array_filter(array_map('trim', explode("\n", $request->features))))
+            : null;
+
+        $data['is_featured'] = $request->boolean('is_featured');
+        $data['is_active'] = $request->boolean('is_active');
+
+        if ($request->hasFile('thumbnail')) {
+            if ($product->thumbnail) {
+                Storage::disk('public')->delete($product->thumbnail);
+            }
+
+            $data['thumbnail'] = $request->file('thumbnail')
+                ->store('products/thumbnails', 'public');
+        }
+
+        if ($request->hasFile('file_path')) {
+            if ($product->file_path) {
+                Storage::disk('local')->delete($product->file_path);
+            }
+
+            $data['file_path'] = $request->file('file_path')
+                ->store('products/files', 'local');
+        }
+
+        $product->update($data);
+
+        return redirect()
+            ->route('admin.products.index')
+            ->with('success', 'Produk berhasil diperbarui.');
+    }
+
+    public function destroy(Product $product)
+    {
+        if ($product->thumbnail) {
+            Storage::disk('public')->delete($product->thumbnail);
+        }
+
+        if ($product->file_path) {
+            Storage::disk('local')->delete($product->file_path);
+        }
+
+        $product->delete();
+
+        return redirect()
+            ->route('admin.products.index')
+            ->with('success', 'Produk berhasil dihapus.');
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Admin/ProjectRequestController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\ProjectRequest;
+use Illuminate\Http\Request;
+
+class ProjectRequestController extends Controller
+{
+    public function index()
+    {
+        $projectRequests = ProjectRequest::with([
+            'user',
+            'service'
+        ])->latest()->paginate(10);
+
+        return view(
+            'admin.project-requests.index',
+            compact('projectRequests')
+        );
+    }
+
+    public function show(ProjectRequest $projectRequest)
+    {
+        $projectRequest->load([
+            'user',
+            'service'
+        ]);
+
+        return view(
+            'admin.project-requests.show',
+            compact('projectRequest')
+        );
+    }
+
+    public function updateStatus(
+        Request $request,
+        ProjectRequest $projectRequest
+    ) {
+        $request->validate([
+            'status' => [
+                'required',
+                'in:pending,review,quotation,development,completed,cancelled'
+            ],
+        ]);
+
+        $projectRequest->update([
+            'status' => $request->status,
+        ]);
+
+        return back()->with(
+            'success',
+            'Status project berhasil diperbarui.'
+        );
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Admin/ServiceController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Service;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
+class ServiceController extends Controller
+{
+    public function index()
+    {
+        $services = Service::latest()->paginate(10);
+
+        return view('admin.services.index', compact('services'));
+    }
+
+    public function create()
+    {
+        return view('admin.services.create');
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'icon' => ['nullable', 'string', 'max:255'],
+            'short_description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string'],
+            'features' => ['nullable', 'string'],
+            'starting_price' => ['required', 'numeric', 'min:0'],
+            'thumbnail' => ['nullable', 'image', 'max:2048'],
+            'is_featured' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $data['slug'] = Str::slug($data['title']) . '-' . Str::random(5);
+
+        $data['features'] = $request->features
+            ? array_values(array_filter(array_map('trim', explode("\n", $request->features))))
+            : null;
+
+        $data['is_featured'] = $request->boolean('is_featured');
+        $data['is_active'] = $request->boolean('is_active');
+
+        if ($request->hasFile('thumbnail')) {
+            $data['thumbnail'] = $request->file('thumbnail')->store('services', 'public');
+        }
+
+        Service::create($data);
+
+        return redirect()
+            ->route('admin.services.index')
+            ->with('success', 'Jasa berhasil ditambahkan.');
+    }
+
+    public function edit(Service $service)
+    {
+        return view('admin.services.edit', compact('service'));
+    }
+
+    public function update(Request $request, Service $service)
+    {
+        $data = $request->validate([
+            'title' => ['required', 'string', 'max:255'],
+            'icon' => ['nullable', 'string', 'max:255'],
+            'short_description' => ['nullable', 'string'],
+            'description' => ['nullable', 'string'],
+            'features' => ['nullable', 'string'],
+            'starting_price' => ['required', 'numeric', 'min:0'],
+            'thumbnail' => ['nullable', 'image', 'max:2048'],
+            'is_featured' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        if ($request->title !== $service->title) {
+            $data['slug'] = Str::slug($request->title) . '-' . Str::random(5);
+        }
+
+        $data['features'] = $request->features
+            ? array_values(array_filter(array_map('trim', explode("\n", $request->features))))
+            : null;
+
+        $data['is_featured'] = $request->boolean('is_featured');
+        $data['is_active'] = $request->boolean('is_active');
+
+        if ($request->hasFile('thumbnail')) {
+            if ($service->thumbnail) {
+                Storage::disk('public')->delete($service->thumbnail);
+            }
+
+            $data['thumbnail'] = $request->file('thumbnail')->store('services', 'public');
+        }
+
+        $service->update($data);
+
+        return redirect()
+            ->route('admin.services.index')
+            ->with('success', 'Jasa berhasil diperbarui.');
+    }
+
+    public function destroy(Service $service)
+    {
+        if ($service->thumbnail) {
+            Storage::disk('public')->delete($service->thumbnail);
+        }
+
+        $service->delete();
+
+        return redirect()
+            ->route('admin.services.index')
+            ->with('success', 'Jasa berhasil dihapus.');
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Admin/TestimonialController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Models\Testimonial;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
+
+class TestimonialController extends Controller
+{
+    public function index()
+    {
+        $testimonials = Testimonial::latest()->paginate(10);
+
+        return view('admin.testimonials.index', compact('testimonials'));
+    }
+
+    public function create()
+    {
+        return view('admin.testimonials.create');
+    }
+
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'position' => ['nullable', 'string', 'max:255'],
+            'company' => ['nullable', 'string', 'max:255'],
+            'review' => ['required', 'string'],
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'photo' => ['nullable', 'image', 'max:2048'],
+            'is_featured' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $data['is_featured'] = $request->boolean('is_featured');
+        $data['is_active'] = $request->boolean('is_active');
+
+        if ($request->hasFile('photo')) {
+            $data['photo'] = $request->file('photo')
+                ->store('testimonials', 'public');
+        }
+
+        Testimonial::create($data);
+
+        return redirect()
+            ->route('admin.testimonials.index')
+            ->with('success', 'Testimonial berhasil ditambahkan.');
+    }
+
+    public function edit(Testimonial $testimonial)
+    {
+        return view('admin.testimonials.edit', compact('testimonial'));
+    }
+
+    public function update(Request $request, Testimonial $testimonial)
+    {
+        $data = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'position' => ['nullable', 'string', 'max:255'],
+            'company' => ['nullable', 'string', 'max:255'],
+            'review' => ['required', 'string'],
+            'rating' => ['required', 'integer', 'min:1', 'max:5'],
+            'photo' => ['nullable', 'image', 'max:2048'],
+            'is_featured' => ['nullable', 'boolean'],
+            'is_active' => ['nullable', 'boolean'],
+        ]);
+
+        $data['is_featured'] = $request->boolean('is_featured');
+        $data['is_active'] = $request->boolean('is_active');
+
+        if ($request->hasFile('photo')) {
+            if ($testimonial->photo) {
+                Storage::disk('public')->delete($testimonial->photo);
+            }
+
+            $data['photo'] = $request->file('photo')
+                ->store('testimonials', 'public');
+        }
+
+        $testimonial->update($data);
+
+        return redirect()
+            ->route('admin.testimonials.index')
+            ->with('success', 'Testimonial berhasil diperbarui.');
+    }
+
+    public function destroy(Testimonial $testimonial)
+    {
+        if ($testimonial->photo) {
+            Storage::disk('public')->delete($testimonial->photo);
+        }
+
+        $testimonial->delete();
+
+        return redirect()
+            ->route('admin.testimonials.index')
+            ->with('success', 'Testimonial berhasil dihapus.');
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Auth/AuthenticatedSessionController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\LoginRequest;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\View\View;
+
+class AuthenticatedSessionController extends Controller
+{
+    /**
+     * Display the login view.
+     */
+    public function create(): View
+    {
+        return view('auth.login');
+    }
+
+    /**
+     * Handle an incoming authentication request.
+     */
+    public function store(LoginRequest $request): RedirectResponse
+    {
+        $request->authenticate();
+
+        $request->session()->regenerate();
+
+        return redirect()->intended(route('dashboard', absolute: false));
+    }
+
+    /**
+     * Destroy an authenticated session.
+     */
+    public function destroy(Request $request): RedirectResponse
+    {
+        Auth::guard('web')->logout();
+
+        $request->session()->invalidate();
+
+        $request->session()->regenerateToken();
+
+        return redirect('/');
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Auth/ConfirmablePasswordController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+
+class ConfirmablePasswordController extends Controller
+{
+    /**
+     * Show the confirm password view.
+     */
+    public function show(): View
+    {
+        return view('auth.confirm-password');
+    }
+
+    /**
+     * Confirm the user's password.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        if (! Auth::guard('web')->validate([
+            'email' => $request->user()->email,
+            'password' => $request->password,
+        ])) {
+            throw ValidationException::withMessages([
+                'password' => __('auth.password'),
+            ]);
+        }
+
+        $request->session()->put('auth.password_confirmed_at', time());
+
+        return redirect()->intended(route('dashboard', absolute: false));
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Auth/EmailVerificationNotificationController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+
+class EmailVerificationNotificationController extends Controller
+{
+    /**
+     * Send a new email verification notification.
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->intended(route('dashboard', absolute: false));
+        }
+
+        $request->user()->sendEmailVerificationNotification();
+
+        return back()->with('status', 'verification-link-sent');
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Auth/EmailVerificationPromptController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\View\View;
+
+class EmailVerificationPromptController extends Controller
+{
+    /**
+     * Display the email verification prompt.
+     */
+    public function __invoke(Request $request): RedirectResponse|View
+    {
+        return $request->user()->hasVerifiedEmail()
+                    ? redirect()->intended(route('dashboard', absolute: false))
+                    : view('auth.verify-email');
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Auth/NewPasswordController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Auth\Events\PasswordReset;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+
+class NewPasswordController extends Controller
+{
+    /**
+     * Display the password reset view.
+     */
+    public function create(Request $request): View
+    {
+        return view('auth.reset-password', ['request' => $request]);
+    }
+
+    /**
+     * Handle an incoming new password request.
+     *
+     * @throws ValidationException
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'token' => ['required'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        // Here we will attempt to reset the user's password. If it is successful we
+        // will update the password on an actual user model and persist it to the
+        // database. Otherwise we will parse the error and return the response.
+        $status = Password::reset(
+            $request->only('email', 'password', 'password_confirmation', 'token'),
+            function (User $user) use ($request) {
+                $user->forceFill([
+                    'password' => Hash::make($request->password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        // If the password was successfully reset, we will redirect the user back to
+        // the application's home authenticated view. If there is an error we can
+        // redirect them back to where they came from with their error message.
+        return $status == Password::PASSWORD_RESET
+                    ? redirect()->route('login')->with('status', __($status))
+                    : back()->withInput($request->only('email'))
+                        ->withErrors(['email' => __($status)]);
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Auth/PasswordController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules\Password;
+
+class PasswordController extends Controller
+{
+    /**
+     * Update the user's password.
+     */
+    public function update(Request $request): RedirectResponse
+    {
+        $validated = $request->validateWithBag('updatePassword', [
+            'current_password' => ['required', 'current_password'],
+            'password' => ['required', Password::defaults(), 'confirmed'],
+        ]);
+
+        $request->user()->update([
+            'password' => Hash::make($validated['password']),
+        ]);
+
+        return back()->with('status', 'password-updated');
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Auth/PasswordResetLinkController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+
+class PasswordResetLinkController extends Controller
+{
+    /**
+     * Display the password reset link request view.
+     */
+    public function create(): View
+    {
+        return view('auth.forgot-password');
+    }
+
+    /**
+     * Handle an incoming password reset link request.
+     *
+     * @throws ValidationException
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'email' => ['required', 'email'],
+        ]);
+
+        // We will send the password reset link to this user. Once we have attempted
+        // to send the link, we will examine the response then see the message we
+        // need to show to the user. Finally, we'll send out a proper response.
+        $status = Password::sendResetLink(
+            $request->only('email')
+        );
+
+        return $status == Password::RESET_LINK_SENT
+                    ? back()->with('status', __($status))
+                    : back()->withInput($request->only('email'))
+                        ->withErrors(['email' => __($status)]);
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Auth/RegisteredUserController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use App\Models\User;
+use Illuminate\Auth\Events\Registered;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rules;
+use Illuminate\Validation\ValidationException;
+use Illuminate\View\View;
+
+class RegisteredUserController extends Controller
+{
+    /**
+     * Display the registration view.
+     */
+    public function create(): View
+    {
+        return view('auth.register');
+    }
+
+    /**
+     * Handle an incoming registration request.
+     *
+     * @throws ValidationException
+     */
+    public function store(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:'.User::class],
+            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+        ]);
+
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => Hash::make($request->password),
+        ]);
+
+        event(new Registered($user));
+
+        Auth::login($user);
+
+        return redirect(route('dashboard', absolute: false));
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Auth/VerifyEmailController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Auth;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Auth\Events\Verified;
+use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\RedirectResponse;
+
+class VerifyEmailController extends Controller
+{
+    /**
+     * Mark the authenticated user's email address as verified.
+     */
+    public function __invoke(EmailVerificationRequest $request): RedirectResponse
+    {
+        if ($request->user()->hasVerifiedEmail()) {
+            return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
+        }
+
+        if ($request->user()->markEmailAsVerified()) {
+            event(new Verified($request->user()));
+        }
+
+        return redirect()->intended(route('dashboard', absolute: false).'?verified=1');
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/CheckoutController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use App\Models\Product;
+use App\Services\WhatsAppNotificationService;
+use Illuminate\Support\Str;
+
+class CheckoutController extends Controller
+{
+    public function store(Product $product)
+    {
+        abort_if(! $product->is_active, 404);
+
+        $order = Order::create([
+            'invoice_number' => 'INV-' . now()->format('YmdHis') . '-' . Str::upper(Str::random(5)),
+            'user_id' => auth()->id(),
+            'total_price' => $product->final_price,
+            'status' => 'pending',
+            'payment_status' => 'unpaid',
+        ]);
+
+        app(WhatsAppNotificationService::class)->sendToAdmin(
+                "🛒 *Order Baru HilmiDev*\n\n" .
+                "Invoice: {$order->invoice_number}\n" .
+                "Client: " . auth()->user()->name . "\n" .
+                "Total: Rp " . number_format($order->total_price, 0, ',', '.') . "\n\n" .
+                "Cek admin panel sekarang."
+            );
+
+        $order->items()->create([
+            'product_id' => $product->id,
+            'product_name' => $product->name,
+            'price' => $product->final_price,
+        ]);
+
+        return redirect()
+            ->route('orders.show', $order)
+            ->with('success', 'Invoice berhasil dibuat.');
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Client/DashboardController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Client;
+
+use App\Http\Controllers\Controller;
+use App\Models\Order;
+use App\Models\ProjectRequest;
+
+class DashboardController extends Controller
+{
+    public function index()
+    {
+        $orders = Order::with('items.product')
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        $projectRequests = ProjectRequest::with('service')
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->limit(5)
+            ->get();
+
+        return view('client.dashboard', [
+            'totalOrders' => Order::where('user_id', auth()->id())->count(),
+            'paidOrders' => Order::where('user_id', auth()->id())
+                ->where('payment_status', 'paid')
+                ->count(),
+            'totalInvoices' => Order::where('user_id', auth()->id())->count(),
+            'activeProjects' => ProjectRequest::where('user_id', auth()->id())
+                ->whereIn('status', ['pending', 'review', 'quotation', 'development'])
+                ->count(),
+            'orders' => $orders,
+            'projectRequests' => $projectRequests,
+        ]);
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Controller.php
+============================================================
+<?php
+
+namespace App\Http\Controllers;
+
+abstract class Controller
+{
+    //
+}
+
+============================================================
+FILE: app/Http/Controllers/CourseCatalogController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Course;
+use App\Models\Membership;
+use Illuminate\Http\Request;
+
+class CourseCatalogController extends Controller
+{
+    public function index(Request $request)
+    {
+        $search = trim((string) $request->get('q', ''));
+        $level = trim((string) $request->get('level', ''));
+
+        $courses = Course::query()
+            ->published()
+            ->withCount([
+                'modules',
+                'lessons as lessons_count' => fn ($query) => $query->where('is_published', true),
+            ])
+            ->when($search !== '', function ($query) use ($search) {
+                $query->where(function ($builder) use ($search) {
+                    $builder
+                        ->where('title', 'like', "%{$search}%")
+                        ->orWhere('subtitle', 'like', "%{$search}%")
+                        ->orWhere('description', 'like', "%{$search}%")
+                        ->orWhere('technology', 'like', "%{$search}%");
+                });
+            })
+            ->when($level !== '', fn ($query) => $query->where('level', $level))
+            ->orderByDesc('is_featured')
+            ->orderBy('sort_order')
+            ->latest()
+            ->paginate(9)
+            ->withQueryString();
+
+        $hasActiveMembership = auth()->check()
+            && Membership::query()
+                ->where('user_id', auth()->id())
+                ->active()
+                ->exists();
+
+        return view('courses.index', compact(
+            'courses',
+            'search',
+            'level',
+            'hasActiveMembership'
+        ));
+    }
+
+    public function show(Course $course)
+    {
+        abort_if(! $course->is_published, 404);
+
+        $course->load([
+            'modules.lessons' => fn ($query) => $query
+                ->where('is_published', true)
+                ->orderBy('sort_order')
+                ->orderBy('id'),
+        ]);
+
+        $hasActiveMembership = auth()->check()
+            && Membership::query()
+                ->where('user_id', auth()->id())
+                ->active()
+                ->exists();
+
+        return view('courses.show', compact('course', 'hasActiveMembership'));
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/HomeController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\Portfolio;
+use App\Models\Service;
+use App\Models\Testimonial;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+
+class HomeController extends Controller
+{
+    public function index(Request $request)
+    {
+        $search = trim((string) $request->get('q', ''));
+        $category = (string) $request->get('category', 'all');
+        $technology = trim((string) $request->get('technology', ''));
+        $sort = (string) $request->get('sort', 'latest');
+
+        $productsQuery = Product::query()
+            ->with('category')
+            ->where('is_active', true);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pencarian Produk
+        |--------------------------------------------------------------------------
+        */
+        if ($search !== '') {
+            $productsQuery->where(function (Builder $query) use ($search) {
+                $query
+                    ->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('short_description', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%')
+                    ->orWhere('technology', 'like', '%' . $search . '%')
+                    ->orWhereHas('category', function (Builder $categoryQuery) use ($search) {
+                        $categoryQuery->where('name', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Filter Kategori
+        |--------------------------------------------------------------------------
+        */
+        if ($category !== '' && $category !== 'all') {
+            $productsQuery->whereHas('category', function (Builder $query) use ($category) {
+                $query->where('slug', $category);
+            });
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Filter Teknologi
+        |--------------------------------------------------------------------------
+        */
+        if ($technology !== '') {
+            $productsQuery->where(
+                'technology',
+                'like',
+                '%' . $technology . '%'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pengurutan Produk
+        |--------------------------------------------------------------------------
+        */
+        match ($sort) {
+            'oldest' => $productsQuery->oldest(),
+            'price_low' => $productsQuery
+                ->orderByRaw('COALESCE(discount_price, price) ASC'),
+            'price_high' => $productsQuery
+                ->orderByRaw('COALESCE(discount_price, price) DESC'),
+            'name_asc' => $productsQuery->orderBy('name'),
+            'name_desc' => $productsQuery->orderByDesc('name'),
+            'featured' => $productsQuery
+                ->orderByDesc('is_featured')
+                ->latest(),
+            default => $productsQuery->latest(),
+        };
+
+        $products = $productsQuery
+            ->paginate(12)
+            ->withQueryString();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Data Kategori
+        |--------------------------------------------------------------------------
+        */
+        $categories = Category::query()
+            ->where('is_active', true)
+            ->withCount([
+                'products' => function (Builder $query) {
+                    $query->where('is_active', true);
+                },
+            ])
+            ->orderBy('name')
+            ->get();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Daftar Teknologi untuk Filter
+        |--------------------------------------------------------------------------
+        */
+        $technologies = Product::query()
+            ->where('is_active', true)
+            ->whereNotNull('technology')
+            ->where('technology', '!=', '')
+            ->pluck('technology')
+            ->flatMap(function ($item) {
+                return preg_split('/[,|\/]+/', $item);
+            })
+            ->map(function ($item) {
+                return trim($item);
+            })
+            ->filter()
+            ->unique(function ($item) {
+                return strtolower($item);
+            })
+            ->sort()
+            ->values();
+
+        /*
+        |--------------------------------------------------------------------------
+        | Data Pendukung Halaman Publik
+        |--------------------------------------------------------------------------
+        */
+        $featuredServices = Service::query()
+            ->where('is_active', true)
+            ->where('is_featured', true)
+            ->latest()
+            ->limit(6)
+            ->get();
+
+        $featuredPortfolios = Portfolio::query()
+            ->where('is_active', true)
+            ->where('is_featured', true)
+            ->latest()
+            ->limit(6)
+            ->get();
+        $testimonials = Testimonial::query()
+            ->where('is_active', true)
+            ->where('is_featured', true)
+            ->latest()
+            ->limit(8)
+            ->get();
+
+        $productStatistics = [
+            'total_products' => Product::where('is_active', true)->count(),
+            'total_categories' => Category::where('is_active', true)->count(),
+            'featured_products' => Product::where('is_active', true)
+                ->where('is_featured', true)
+                ->count(),
+        ];
+
+        return view('home', compact(
+            'products',
+            'categories',
+            'technologies',
+            'featuredServices',            'featuredPortfolios',
+
+            'testimonials',
+            'productStatistics',
+            'search',
+            'category',
+            'technology',
+            'sort'
+        ));
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/InvoicePdfController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use Barryvdh\DomPDF\Facade\Pdf;
+
+class InvoicePdfController extends Controller
+{
+    public function download(Order $order)
+    {
+        abort_if($order->user_id !== auth()->id() && ! auth()->user()->isAdmin(), 403);
+
+        $order->load(['user', 'items.product']);
+
+        $pdf = Pdf::loadView('pdf.invoice', compact('order'))
+            ->setPaper('a4');
+
+        return $pdf->download($order->invoice_number . '.pdf');
+    }
+}
+============================================================
+FILE: app/Http/Controllers/Member/CourseController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Member;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\CourseEnrollment;
+use App\Models\LessonProgress;
+
+class CourseController extends Controller
+{
+    public function show(Course $course)
+    {
+        abort_if(! $course->is_published, 404);
+
+        CourseEnrollment::firstOrCreate(
+            ['user_id' => auth()->id(), 'course_id' => $course->id],
+            ['enrolled_at' => now()]
+        );
+
+        $course->load([
+            'modules.lessons' => fn ($query) => $query
+                ->where('is_published', true)
+                ->orderBy('sort_order')
+                ->orderBy('id'),
+        ]);
+
+        $completedLessonIds = LessonProgress::query()
+            ->where('user_id', auth()->id())
+            ->where('is_completed', true)
+            ->pluck('course_lesson_id');
+
+        $allLessons = $course->modules->flatMap->lessons;
+        $totalLessons = $allLessons->count();
+        $completedLessons = $allLessons->whereIn('id', $completedLessonIds)->count();
+        $percentage = $totalLessons > 0
+            ? (int) round(($completedLessons / $totalLessons) * 100)
+            : 0;
+
+        return view('member.courses.show', compact(
+            'course',
+            'completedLessonIds',
+            'totalLessons',
+            'completedLessons',
+            'percentage'
+        ));
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Member/DashboardController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Member;
+
+use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\CourseEnrollment;
+use App\Models\LessonProgress;
+use App\Models\Membership;
+
+class DashboardController extends Controller
+{
+    public function index()
+    {
+        $userId = auth()->id();
+
+        $membership = Membership::query()
+            ->with('plan')
+            ->where('user_id', $userId)
+            ->active()
+            ->latest('id')
+            ->firstOrFail();
+
+        $courses = Course::query()
+            ->published()
+            ->withCount([
+                'lessons as lessons_count' => fn ($query) => $query->where('is_published', true),
+            ])
+            ->orderByDesc('is_featured')
+            ->orderBy('sort_order')
+            ->get();
+
+        $completedLessonIds = LessonProgress::query()
+            ->where('user_id', $userId)
+            ->where('is_completed', true)
+            ->pluck('course_lesson_id');
+
+        $courseCards = $courses->map(function (Course $course) use ($completedLessonIds) {
+            $lessonIds = $course->lessons()
+                ->where('course_lessons.is_published', true)
+                ->pluck('course_lessons.id');
+
+            $completed = $lessonIds->intersect($completedLessonIds)->count();
+            $total = $lessonIds->count();
+
+            return [
+                'course' => $course,
+                'completed' => $completed,
+                'total' => $total,
+                'percentage' => $total > 0 ? (int) round(($completed / $total) * 100) : 0,
+            ];
+        });
+
+        $lastProgress = LessonProgress::query()
+            ->with('lesson.module.course')
+            ->where('user_id', $userId)
+            ->latest('updated_at')
+            ->first();
+
+        return view('member.dashboard', [
+            'membership' => $membership,
+            'courseCards' => $courseCards,
+            'totalCourses' => $courses->count(),
+            'completedLessons' => $completedLessonIds->count(),
+            'enrolledCourses' => CourseEnrollment::where('user_id', $userId)->count(),
+            'lastProgress' => $lastProgress,
+        ]);
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Member/LessonController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Member;
+
+use App\Http\Controllers\Controller;
+use App\Models\CourseEnrollment;
+use App\Models\CourseLesson;
+use App\Models\LessonProgress;
+use Illuminate\Support\Facades\Storage;
+
+class LessonController extends Controller
+{
+    public function show(CourseLesson $lesson)
+    {
+        $lesson->load('module.course');
+
+        abort_if(! $lesson->is_published || ! $lesson->module->course->is_published, 404);
+
+        $course = $lesson->module->course;
+
+        CourseEnrollment::firstOrCreate(
+            ['user_id' => auth()->id(), 'course_id' => $course->id],
+            ['enrolled_at' => now()]
+        );
+
+        $progress = LessonProgress::firstOrCreate([
+            'user_id' => auth()->id(),
+            'course_lesson_id' => $lesson->id,
+        ]);
+
+        $course->load([
+            'modules.lessons' => fn ($query) => $query
+                ->where('is_published', true)
+                ->orderBy('sort_order')
+                ->orderBy('id'),
+        ]);
+
+        $allLessons = $course->modules->flatMap->lessons->values();
+        $currentIndex = $allLessons->search(fn ($item) => $item->id === $lesson->id);
+        $previousLesson = $currentIndex > 0 ? $allLessons[$currentIndex - 1] : null;
+        $nextLesson = $currentIndex !== false && $currentIndex < $allLessons->count() - 1
+            ? $allLessons[$currentIndex + 1]
+            : null;
+
+        $completedLessonIds = LessonProgress::query()
+            ->where('user_id', auth()->id())
+            ->where('is_completed', true)
+            ->pluck('course_lesson_id');
+
+        return view('member.lessons.show', compact(
+            'lesson',
+            'course',
+            'progress',
+            'previousLesson',
+            'nextLesson',
+            'completedLessonIds'
+        ));
+    }
+
+    public function video(CourseLesson $lesson)
+    {
+        $lesson->load('module.course');
+
+        abort_if(! $lesson->is_published || ! $lesson->module->course->is_published, 404);
+        abort_unless($lesson->video_type === 'upload' && $lesson->video_path, 404);
+        abort_unless(Storage::disk('local')->exists($lesson->video_path), 404);
+
+        return response()->file(
+            Storage::disk('local')->path($lesson->video_path),
+            [
+                'Content-Type' => Storage::disk('local')->mimeType($lesson->video_path) ?: 'video/mp4',
+                'Accept-Ranges' => 'bytes',
+                'Cache-Control' => 'private, no-store, max-age=0',
+            ]
+        );
+    }
+
+    public function attachment(CourseLesson $lesson)
+    {
+        $lesson->load('module.course');
+
+        abort_if(! $lesson->is_published || ! $lesson->module->course->is_published, 404);
+        abort_unless($lesson->attachment_path, 404);
+        abort_unless(Storage::disk('local')->exists($lesson->attachment_path), 404);
+
+        return Storage::disk('local')->download($lesson->attachment_path);
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/Member/LessonProgressController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers\Member;
+
+use App\Http\Controllers\Controller;
+use App\Models\CourseEnrollment;
+use App\Models\CourseLesson;
+use App\Models\LessonProgress;
+use Illuminate\Http\Request;
+
+class LessonProgressController extends Controller
+{
+    public function store(Request $request, CourseLesson $lesson)
+    {
+        $lesson->load('module.course');
+
+        abort_if(! $lesson->is_published || ! $lesson->module->course->is_published, 404);
+
+        $data = $request->validate([
+            'watched_seconds' => ['nullable', 'integer', 'min:0'],
+            'is_completed' => ['nullable', 'boolean'],
+        ]);
+
+        $progress = LessonProgress::firstOrNew([
+            'user_id' => auth()->id(),
+            'course_lesson_id' => $lesson->id,
+        ]);
+
+        $progress->watched_seconds = max(
+            $progress->watched_seconds ?? 0,
+            (int) ($data['watched_seconds'] ?? 0)
+        );
+
+        if ($request->boolean('is_completed')) {
+            $progress->is_completed = true;
+            $progress->completed_at = $progress->completed_at ?: now();
+        }
+
+        $progress->save();
+
+        $course = $lesson->module->course;
+        $totalLessons = $course->lessons()
+            ->where('course_lessons.is_published', true)
+            ->count();
+
+        $completedLessons = LessonProgress::query()
+            ->where('user_id', auth()->id())
+            ->where('is_completed', true)
+            ->whereHas('lesson.module', fn ($query) => $query->where('course_id', $course->id))
+            ->count();
+
+        if ($totalLessons > 0 && $completedLessons >= $totalLessons) {
+            CourseEnrollment::query()
+                ->where('user_id', auth()->id())
+                ->where('course_id', $course->id)
+                ->update(['completed_at' => now()]);
+        }
+
+        return back()->with('success', 'Progress pembelajaran berhasil disimpan.');
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/OrderController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+
+class OrderController extends Controller
+{
+    public function index()
+    {
+        $orders = Order::with('items.product')
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->paginate(10);
+
+        return view('orders.index', compact('orders'));
+    }
+
+    public function show(Order $order)
+    {
+        abort_if($order->user_id !== auth()->id() && ! auth()->user()->isAdmin(), 403);
+
+        $order->load('items.product', 'user');
+
+        return view('orders.show', compact('order'));
+    }
+}
+============================================================
+FILE: app/Http/Controllers/PaymentProofController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use Illuminate\Http\Request;
+
+class PaymentProofController extends Controller
+{
+    public function store(Request $request, Order $order)
+    {
+        abort_if($order->user_id !== auth()->id(), 403);
+
+        $data = $request->validate([
+            'payment_method' => ['required', 'string', 'max:100'],
+            'payment_proof' => ['required', 'image', 'max:2048'],
+        ]);
+
+        $path = $request->file('payment_proof')->store('payment-proofs', 'public');
+
+        $order->update([
+            'payment_method' => $data['payment_method'],
+            'payment_proof' => $path,
+            'payment_status' => 'review',
+            'status' => 'processing',
+        ]);
+
+        return back()->with('success', 'Bukti pembayaran berhasil dikirim. Admin akan memverifikasi pembayaran.');
+    }
+}
+============================================================
+FILE: app/Http/Controllers/ProductController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Category;
+use App\Models\Product;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+
+class ProductController extends Controller
+{
+    public function index(Request $request)
+    {
+        $search = trim((string) $request->get('q', ''));
+        $category = trim((string) $request->get('category', ''));
+        $technology = trim((string) $request->get('technology', ''));
+        $sort = trim((string) $request->get('sort', 'latest'));
+
+        $productsQuery = Product::query()
+            ->with('category')
+            ->where('is_active', true);
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pencarian
+        |--------------------------------------------------------------------------
+        */
+        if ($search !== '') {
+            $productsQuery->where(function (Builder $query) use ($search) {
+                $query
+                    ->where('name', 'like', '%' . $search . '%')
+                    ->orWhere('short_description', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%')
+                    ->orWhere('technology', 'like', '%' . $search . '%')
+                    ->orWhereHas('category', function (Builder $categoryQuery) use ($search) {
+                        $categoryQuery->where('name', 'like', '%' . $search . '%');
+                    });
+            });
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Filter kategori
+        |--------------------------------------------------------------------------
+        */
+        if ($category !== '') {
+            $productsQuery->whereHas('category', function (Builder $query) use ($category) {
+                $query->where('slug', $category);
+            });
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Filter teknologi
+        |--------------------------------------------------------------------------
+        */
+        if ($technology !== '') {
+            $productsQuery->where(
+                'technology',
+                'like',
+                '%' . $technology . '%'
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | Pengurutan
+        |--------------------------------------------------------------------------
+        */
+        match ($sort) {
+            'featured' => $productsQuery
+                ->orderByDesc('is_featured')
+                ->latest(),
+
+            'price_low' => $productsQuery
+                ->orderByRaw('COALESCE(discount_price, price) ASC'),
+
+            'price_high' => $productsQuery
+                ->orderByRaw('COALESCE(discount_price, price) DESC'),
+
+            'name_asc' => $productsQuery->orderBy('name'),
+
+            'name_desc' => $productsQuery->orderByDesc('name'),
+
+            'oldest' => $productsQuery->oldest(),
+
+            default => $productsQuery->latest(),
+        };
+
+        $products = $productsQuery
+            ->paginate(12)
+            ->withQueryString();
+
+        $categories = Category::query()
+            ->where('is_active', true)
+            ->withCount([
+                'products' => function (Builder $query) {
+                    $query->where('is_active', true);
+                },
+            ])
+            ->orderBy('name')
+            ->get();
+
+        $technologies = Product::query()
+            ->where('is_active', true)
+            ->whereNotNull('technology')
+            ->where('technology', '!=', '')
+            ->pluck('technology')
+            ->flatMap(function ($item) {
+                return preg_split('/[,|\/]+/', $item);
+            })
+            ->map(function ($item) {
+                return trim($item);
+            })
+            ->filter()
+            ->unique(function ($item) {
+                return strtolower($item);
+            })
+            ->sort()
+            ->values();
+
+        return view('products.index', compact(
+            'products',
+            'categories',
+            'technologies',
+            'search',
+            'category',
+            'technology',
+            'sort'
+        ));
+    }
+
+    public function show(Product $product)
+    {
+        abort_if(! $product->is_active, 404);
+
+        $product->load('category');
+
+        $relatedProducts = Product::query()
+            ->with('category')
+            ->where('category_id', $product->category_id)
+            ->where('id', '!=', $product->id)
+            ->where('is_active', true)
+            ->latest()
+            ->limit(4)
+            ->get();
+
+        return view('products.show', compact(
+            'product',
+            'relatedProducts'
+        ));
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/ProductDownloadController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Order;
+use App\Models\OrderItem;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
+
+class ProductDownloadController extends Controller
+{
+    public function download(Order $order, OrderItem $item)
+    {
+        abort_if($order->user_id !== auth()->id(), 403);
+        abort_if($order->payment_status !== 'paid', 403);
+        abort_if($item->order_id !== $order->id, 403);
+
+        $product = $item->product;
+
+        abort_if(! $product, 404);
+        abort_if(! $product->file_path, 404);
+        abort_if(! Storage::disk('local')->exists($product->file_path), 404);
+
+        return Storage::disk('local')->download(
+            $product->file_path,
+            Str::slug($product->name) . '.zip'
+        );
+    }
+}
+============================================================
+FILE: app/Http/Controllers/ProfileController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Http\Requests\ProfileUpdateRequest;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Redirect;
+use Illuminate\View\View;
+
+class ProfileController extends Controller
+{
+    /**
+     * Display the user's profile form.
+     */
+    public function edit(Request $request): View
+    {
+        return view('profile.edit', [
+            'user' => $request->user(),
+        ]);
+    }
+
+    /**
+     * Update the user's profile information.
+     */
+    public function update(ProfileUpdateRequest $request): RedirectResponse
+    {
+        $request->user()->fill($request->validated());
+
+        if ($request->user()->isDirty('email')) {
+            $request->user()->email_verified_at = null;
+        }
+
+        $request->user()->save();
+
+        return Redirect::route('profile.edit')->with('status', 'profile-updated');
+    }
+
+    /**
+     * Delete the user's account.
+     */
+    public function destroy(Request $request): RedirectResponse
+    {
+        $request->validateWithBag('userDeletion', [
+            'password' => ['required', 'current_password'],
+        ]);
+
+        $user = $request->user();
+
+        Auth::logout();
+
+        $user->delete();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return Redirect::to('/');
+    }
+}
+
+============================================================
+FILE: app/Http/Controllers/ProjectRequestController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\ProjectRequest;
+use App\Models\Service;
+use App\Services\WhatsAppNotificationService;
+use Illuminate\Http\Request;
+
+class ProjectRequestController extends Controller
+{
+    public function create(Service $service)
+    {
+        abort_if(! $service->is_active, 404);
+
+        return view('project-requests.create', compact('service'));
+    }
+
+    public function store(Request $request, Service $service)
+    {
+        abort_if(! $service->is_active, 404);
+
+        $data = $request->validate([
+            'project_name' => ['required', 'string', 'max:255'],
+            'company_name' => ['nullable', 'string', 'max:255'],
+            'phone' => ['required', 'string', 'max:30'],
+            'budget' => ['nullable', 'string', 'max:100'],
+            'deadline' => ['nullable', 'string', 'max:100'],
+            'description' => ['required', 'string'],
+        ]);
+
+        $projectRequest = ProjectRequest::create([
+            'user_id' => auth()->id(),
+            'service_id' => $service->id,
+            'project_name' => $data['project_name'],
+            'company_name' => $data['company_name'] ?? null,
+            'phone' => $data['phone'],
+            'budget' => $data['budget'] ?? null,
+            'deadline' => $data['deadline'] ?? null,
+            'description' => $data['description'],
+            'status' => 'pending',
+        ]);
+
+        app(WhatsAppNotificationService::class)->sendToAdmin(
+            "📩 *Project Request Baru HilmiDev*\n\n" .
+            "Project: {$projectRequest->project_name}\n" .
+            "Client: " . auth()->user()->name . "\n" .
+            "Layanan: {$service->title}\n" .
+            "WhatsApp: {$projectRequest->phone}\n" .
+            "Budget: " . ($projectRequest->budget ?? '-') . "\n" .
+            "Deadline: " . ($projectRequest->deadline ?? '-') . "\n\n" .
+            "Segera follow up client."
+        );
+
+        return redirect()
+            ->route('project-requests.index')
+            ->with('success', 'Request project berhasil dikirim. Tim HilmiDev akan segera menghubungi kamu.');
+    }
+
+    public function index()
+    {
+        $projectRequests = ProjectRequest::with('service')
+            ->where('user_id', auth()->id())
+            ->latest()
+            ->paginate(10);
+
+        return view('project-requests.index', compact('projectRequests'));
+    }
+
+    public function show(ProjectRequest $projectRequest)
+    {
+        abort_if($projectRequest->user_id !== auth()->id() && ! auth()->user()->isAdmin(), 403);
+
+        $projectRequest->load(['service', 'user']);
+
+        return view('project-requests.show', compact('projectRequest'));
+    }
+}
+============================================================
+FILE: app/Http/Controllers/ServiceController.php
+============================================================
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Service;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\Request;
+
+class ServiceController extends Controller
+{
+    public function index(Request $request)
+    {
+        $search = trim((string) $request->get('q', ''));
+        $sort = trim((string) $request->get('sort', 'latest'));
+
+        $servicesQuery = Service::query()
+            ->where('is_active', true);
+
+        if ($search !== '') {
+            $servicesQuery->where(function (Builder $query) use ($search) {
+                $query
+                    ->where('title', 'like', '%' . $search . '%')
+                    ->orWhere('short_description', 'like', '%' . $search . '%')
+                    ->orWhere('description', 'like', '%' . $search . '%')
+                    ->orWhere('features', 'like', '%' . $search . '%');
+            });
+        }
+
+        match ($sort) {
+            'featured' => $servicesQuery
+                ->orderByDesc('is_featured')
+                ->latest(),
+
+            'price_low' => $servicesQuery
+                ->orderBy('starting_price'),
+
+            'price_high' => $servicesQuery
+                ->orderByDesc('starting_price'),
+
+            'name_asc' => $servicesQuery
+                ->orderBy('title'),
+
+            'name_desc' => $servicesQuery
+                ->orderByDesc('title'),
+
+            'oldest' => $servicesQuery
+                ->oldest(),
+
+            default => $servicesQuery
+                ->latest(),
+        };
+
+        $services = $servicesQuery
+            ->paginate(9)
+            ->withQueryString();
+
+        $serviceStatistics = [
+            'total_services' => Service::query()
+                ->where('is_active', true)
+                ->count(),
+
+            'featured_services' => Service::query()
+                ->where('is_active', true)
+                ->where('is_featured', true)
+                ->count(),
+
+            'starting_price' => Service::query()
+                ->where('is_active', true)
+                ->min('starting_price') ?? 0,
+        ];
+
+        return view('services.index', compact(
+            'services',
+            'serviceStatistics',
+            'search',
+            'sort'
+        ));
+    }
+
+    public function show(Service $service)
+    {
+        abort_if(! $service->is_active, 404);
+
+        $relatedServices = Service::query()
+            ->where('id', '!=', $service->id)
+            ->where('is_active', true)
+            ->orderByDesc('is_featured')
+            ->latest()
+            ->limit(4)
+            ->get();
+
+        return view('services.show', compact(
+            'service',
+            'relatedServices'
+        ));
+    }
+}

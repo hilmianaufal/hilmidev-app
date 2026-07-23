@@ -18,7 +18,7 @@
                 </p>
             </div>
 
-            @if($order->payment_status === 'pending')
+            @if($order->payment_status === 'review')
                 <div class="flex gap-3">
 
                     <form method="POST"
@@ -94,11 +94,11 @@
 
                                 <div>
                                     <p class="font-black text-slate-900">
-                                        {{ $item->product->name }}
+                                        {{ $item->product_name }}
                                     </p>
 
                                     <p class="text-sm text-slate-500">
-                                        Qty {{ $item->quantity }}
+                                        Qty 1
                                     </p>
                                 </div>
 
@@ -133,7 +133,7 @@
                             </p>
 
                             <p class="font-bold">
-                                {{ $order->user->name }}
+                                {{ $order->user?->name }}
                             </p>
                         </div>
 
@@ -143,7 +143,7 @@
                             </p>
 
                             <p class="font-bold">
-                                {{ $order->user->email }}
+                                {{ $order->user?->email }}
                             </p>
                         </div>
 

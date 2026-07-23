@@ -55,11 +55,11 @@
 
                                 <td class="px-5 py-5">
                                     <p class="font-bold text-slate-800">
-                                        {{ $order->user->name ?? '-' }}
+                                        {{ $order->user?->name ?? '-' }}
                                     </p>
 
                                     <p class="text-xs text-slate-500">
-                                        {{ $order->user->email ?? '-' }}
+                                        {{ $order->user?->email ?? '-' }}
                                     </p>
                                 </td>
 
@@ -82,7 +82,7 @@
                                             <i data-lucide="check-circle" class="w-3 h-3"></i>
                                             PAID
                                         </span>
-                                    @elseif ($order->payment_status === 'rejected')
+                                    @elseif ($order->payment_status === 'failed')
                                         <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-red-50 text-red-700 text-xs font-bold">
                                             <i data-lucide="x-circle" class="w-3 h-3"></i>
                                             REJECTED

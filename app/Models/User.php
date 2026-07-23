@@ -65,4 +65,40 @@ class User extends Authenticatable
     {
         return $this->hasMany(\App\Models\ProjectRequest::class);
     }
+
+    public function memberships()
+    {
+        return $this->hasMany(\App\Models\Membership::class);
+    }
+
+    public function courseEnrollments()
+    {
+        return $this->hasMany(\App\Models\CourseEnrollment::class);
+    }
+
+    public function lessonProgress()
+    {
+        return $this->hasMany(\App\Models\LessonProgress::class);
+    }
+
+    public function activeMembership()
+    {
+        return $this->hasOne(\App\Models\Membership::class)
+            ->ofMany('id', 'max', fn ($query) => $query->active());
+    }
+
+    public function hasActiveMembership(): bool
+    {
+        return $this->memberships()->active()->exists();
+    }
+
+    public function lessonNotes()
+    {
+        return $this->hasMany(\App\Models\LessonNote::class);
+    }
+
+    public function lessonDiscussions()
+    {
+        return $this->hasMany(\App\Models\LessonDiscussion::class);
+    }
 }

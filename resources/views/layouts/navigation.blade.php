@@ -1,275 +1,453 @@
-<nav x-data="{ open: false, userDropdown: false, adminDropdown: false }"
-     class="sticky top-0 z-50 border-b border-blue-100/70 bg-white/80 backdrop-blur-2xl shadow-sm shadow-blue-500/5">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center justify-between h-20 gap-6">
-            <a href="{{ route('home') }}" class="flex items-center gap-3 shrink-0">
-                <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                    <i data-lucide="code-2" class="w-6 h-6 text-white"></i>
-                </div>
+@php
+    $currentUser = auth()->user();
 
-                <div>
-                    <h1 class="text-xl font-black tracking-tight">
-                        Hilmi<span class="text-blue-600">Dev</span>
-                    </h1>
-                    <p class="text-xs text-slate-400 -mt-1">Premium Web Studio</p>
-                </div>
-            </a>
+    $dashboardRoute = null;
+    $dashboardLabel = null;
+    $dashboardIcon = null;
 
-            <div class="hidden lg:flex items-center justify-center gap-2 flex-1">
-                <a href="{{ route('home') }}"
-                   class="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold {{ request()->routeIs('home') ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                    <i data-lucide="home" class="w-4 h-4"></i>
-                    Home
-                </a>
+    if ($currentUser) {
+        if ($currentUser->isAdmin()) {
+            $dashboardRoute = 'admin.dashboard';
+            $dashboardLabel = 'Admin Panel';
+            $dashboardIcon = 'shield-check';
+        } elseif ($currentUser->hasActiveMembership()) {
+            $dashboardRoute = 'member.dashboard';
+            $dashboardLabel = 'Area Member';
+            $dashboardIcon = 'graduation-cap';
+        } else {
+            $dashboardRoute = 'client.dashboard';
+            $dashboardLabel = 'Dashboard Client';
+            $dashboardIcon = 'layout-dashboard';
+        }
+    }
 
-                <a href="{{ route('products.index') }}"
-                   class="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold {{ request()->routeIs('products.*') ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                    <i data-lucide="shopping-bag" class="w-4 h-4"></i>
-                    Source Code
-                </a>
+    $menus = [
+        [
+            'label' => 'Home',
+            'route' => 'home',
+            'patterns' => ['home'],
+            'icon' => 'house',
+        ],
+        [
+            'label' => 'Source Code',
+            'route' => 'products.index',
+            'patterns' => ['products.*'],
+            'icon' => 'folder-code',
+        ],
+        [
+            'label' => 'Jasa Website',
+            'route' => 'services.index',
+            'patterns' => ['services.*', 'project-requests.*'],
+            'icon' => 'briefcase-business',
+        ],
+        [
+            'label' => 'Kelas Coding',
+            'route' => 'courses.index',
+            'patterns' => ['courses.*'],
+            'icon' => 'library-big',
+        ],
+        [
+            'label' => 'Blog',
+            'route' => 'blog.index',
+            'patterns' => ['blog.*'],
+            'icon' => 'newspaper',
+        ],
+    ];
+@endphp
 
-                <a href="{{ route('services.index') }}"
-                   class="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold {{ request()->routeIs('services.*') ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                    <i data-lucide="briefcase" class="w-4 h-4"></i>
-                    Jasa Website
-                </a>
-
-                @auth
-                    <a href="{{ route('client.dashboard') }}"
-                       class="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold {{ request()->routeIs('client.dashboard') ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                        <i data-lucide="gauge" class="w-4 h-4"></i>
-                        Client
-                    </a>
-                @endauth
-            </div>
-
-            <div class="hidden lg:flex items-center gap-3 shrink-0">
-                @auth
-                    @if (auth()->user()->isAdmin())
-                        <div class="relative" @click.outside="adminDropdown = false">
-                            <button type="button"
-                                    @click="adminDropdown = ! adminDropdown"
-                                    class="inline-flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-950 text-white font-black text-sm shadow-xl shadow-blue-500/20">
-                                <i data-lucide="shield-check" class="w-4 h-4"></i>
-                                Admin
-                                <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                            </button>
-
-                            <div x-show="adminDropdown"
-                                 x-transition
-                                 x-cloak
-                                 class="absolute right-0 mt-3 w-72 rounded-3xl bg-white border border-blue-100 shadow-2xl shadow-blue-500/20 p-3 z-50">
-                                <a href="{{ route('admin.dashboard') }}"
-                                   class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('admin.dashboard') ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-                                    Dashboard Admin
-                                </a>
-
-                                <a href="{{ route('admin.products.index') }}"
-                                   class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('admin.products.*') ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                                    <i data-lucide="package" class="w-5 h-5"></i>
-                                    Produk
-                                </a>
-
-                                <a href="{{ route('admin.services.index') }}"
-                                   class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('admin.services.*') ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                                    <i data-lucide="briefcase-business" class="w-5 h-5"></i>
-                                    Jasa Website
-                                </a>
-
-                                <a href="{{ route('admin.orders.index') }}"
-                                   class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('admin.orders.*') ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                                    <i data-lucide="shopping-cart" class="w-5 h-5"></i>
-                                    Order
-                                </a>
-
-                                <a href="{{ route('admin.project-requests.index') }}"
-                                   class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('admin.project-requests.*') ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                                    <i data-lucide="folder-kanban" class="w-5 h-5"></i>
-                                    Project Request
-                                </a>
-
-                                <a href="{{ route('admin.portfolios.index') }}"
-                                   class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('admin.portfolios.*') ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                                    <i data-lucide="images" class="w-5 h-5"></i>
-                                    Portfolio
-                                </a>
-
-                                <a href="{{ route('admin.testimonials.index') }}"
-                                   class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('admin.testimonials.*') ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                                    <i data-lucide="message-square-heart" class="w-5 h-5"></i>
-                                    Testimonial
-                                </a>
-
-                                <a href="{{ route('blog.index') }}"
-                                    class="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold {{ request()->routeIs('blog.*') ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                                        <i data-lucide="newspaper" class="w-4 h-4"></i>
-                                        Blog
-                                    </a>
-                            </div>
-                        </div>
-                    @endif
-
-                    <div class="relative" @click.outside="userDropdown = false">
-                        <button type="button"
-                                @click="userDropdown = ! userDropdown"
-                                class="inline-flex items-center gap-3 pl-2 pr-4 py-2 rounded-2xl bg-blue-50 text-blue-700 font-black text-sm border border-blue-100">
-                            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-400 text-white flex items-center justify-center">
-                                {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
-                            </div>
-                            <span class="max-w-[120px] truncate">{{ Auth::user()->name }}</span>
-                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
-                        </button>
-
-                        <div x-show="userDropdown"
-                             x-transition
-                             x-cloak
-                             class="absolute right-0 mt-3 w-64 rounded-3xl bg-white border border-blue-100 shadow-2xl shadow-blue-500/20 p-3 z-50">
-                            <a href="{{ route('orders.index') }}"
-                               class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('orders.*') ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                                <i data-lucide="receipt-text" class="w-5 h-5"></i>
-                                Order Saya
-                            </a>
-
-                            <a href="{{ route('project-requests.index') }}"
-                               class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('project-requests.*') ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                                <i data-lucide="folder-kanban" class="w-5 h-5"></i>
-                                Project Saya
-                            </a>
-
-                            <a href="{{ route('profile.edit') }}"
-                               class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600">
-                                <i data-lucide="user" class="w-5 h-5"></i>
-                                Profile
-                            </a>
-
-                            <div class="my-2 border-t border-blue-50"></div>
-
-                            <form method="POST" action="{{ route('logout') }}">
-                                @csrf
-                                <button class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-red-600 hover:bg-red-50">
-                                    <i data-lucide="log-out" class="w-5 h-5"></i>
-                                    Logout
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                @else
-                    <a href="{{ route('login') }}"
-                       class="px-5 py-3 rounded-2xl font-bold text-slate-600 hover:bg-blue-50 hover:text-blue-600 transition">
-                        Login
-                    </a>
-
-                    <a href="{{ route('register') }}"
-                       class="px-5 py-3 rounded-2xl bg-blue-600 text-white font-black shadow-lg shadow-blue-500/30 hover:bg-blue-700 transition">
-                        Register
-                    </a>
-                @endauth
-            </div>
-
-            <button type="button"
-                    @click="open = ! open"
-                    class="lg:hidden w-11 h-11 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30">
-                <i x-show="! open" data-lucide="menu" class="w-6 h-6"></i>
-                <i x-show="open" data-lucide="x" class="w-6 h-6"></i>
-            </button>
-        </div>
+<nav
+    x-data="{
+        mobileOpen: false,
+        accountOpen: false
+    }"
+    @keydown.escape.window="
+        mobileOpen = false;
+        accountOpen = false;
+    "
+    class="sticky top-0 z-50 border-b border-white/10 bg-gradient-to-r from-blue-950 via-blue-900 to-blue-700 text-white shadow-xl shadow-blue-950/20"
+>
+    {{-- BACKGROUND DECORATION --}}
+    <div class="pointer-events-none absolute inset-0 overflow-hidden">
+        <div class="absolute -left-24 -top-24 h-56 w-56 rounded-full bg-cyan-300/10 blur-3xl"></div>
+        <div class="absolute -right-20 top-0 h-52 w-52 rounded-full bg-blue-300/10 blur-3xl"></div>
     </div>
 
-    <div x-show="open"
-         x-transition
-         x-cloak
-         class="lg:hidden px-4 pb-5">
-        <div class="bg-white rounded-3xl border border-blue-100 shadow-2xl shadow-blue-500/10 p-3 space-y-2">
-            <a href="{{ route('home') }}"
-               class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('home') ? 'bg-blue-600 text-white' : 'text-slate-600 bg-blue-50' }}">
-                <i data-lucide="home" class="w-5 h-5"></i>
-                Home
+    <div class="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div class="flex h-20 items-center justify-between gap-5">
+
+            {{-- BRAND --}}
+            <a
+                href="{{ route('home') }}"
+                class="group flex shrink-0 items-center gap-3"
+            >
+                <div class="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/15 bg-white/10 shadow-lg backdrop-blur-xl transition duration-300 group-hover:-translate-y-0.5 group-hover:bg-white/15">
+                    <i
+                        data-lucide="code-2"
+                        class="h-6 w-6 text-white"
+                    ></i>
+                </div>
+
+                <div class="leading-none">
+                    <p class="text-xl font-black tracking-tight text-white">
+                        Hilmi<span class="text-cyan-300">Dev</span>
+                    </p>
+
+                    <p class="mt-1.5 text-[9px] font-bold uppercase tracking-[0.18em] text-blue-200">
+                        Digital Learning Platform
+                    </p>
+                </div>
             </a>
 
-            <a href="{{ route('products.index') }}"
-               class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('products.*') ? 'bg-blue-600 text-white' : 'text-slate-600 bg-blue-50' }}">
-                <i data-lucide="shopping-bag" class="w-5 h-5"></i>
-                Source Code
-            </a>
+            {{-- MENU DESKTOP --}}
+            <div class="hidden flex-1 items-center justify-center xl:flex">
+                <div class="flex items-center gap-1 rounded-2xl border border-white/10 bg-white/[0.06] p-1.5 backdrop-blur-xl">
+                    @foreach ($menus as $menu)
+                        @php
+                            $isActive = request()->routeIs(...$menu['patterns']);
+                        @endphp
 
-            <a href="{{ route('services.index') }}"
-               class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('services.*') ? 'bg-blue-600 text-white' : 'text-slate-600 bg-blue-50' }}">
-                <i data-lucide="briefcase" class="w-5 h-5"></i>
-                Jasa Website
-            </a>
+                        <a
+                            href="{{ route($menu['route']) }}"
+                            @class([
+                                'inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-black transition duration-200',
+                                'bg-white text-blue-950 shadow-lg' => $isActive,
+                                'text-blue-100/80 hover:bg-white/10 hover:text-white' => ! $isActive,
+                            ])
+                        >
+                            <i
+                                data-lucide="{{ $menu['icon'] }}"
+                                class="h-4 w-4"
+                            ></i>
 
-            @auth
-                <a href="{{ route('client.dashboard') }}"
-                   class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('client.dashboard') ? 'bg-blue-600 text-white' : 'text-slate-600 bg-blue-50' }}">
-                    <i data-lucide="gauge" class="w-5 h-5"></i>
-                    Client Dashboard
-                </a>
+                            {{ $menu['label'] }}
+                        </a>
+                    @endforeach
+                </div>
+            </div>
 
-                <a href="{{ route('orders.index') }}"
-                   class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('orders.*') ? 'bg-blue-600 text-white' : 'text-slate-600 bg-blue-50' }}">
-                    <i data-lucide="receipt-text" class="w-5 h-5"></i>
-                    Order Saya
-                </a>
+            {{-- AREA AKUN DESKTOP --}}
+            <div class="hidden shrink-0 items-center gap-2 lg:flex">
+                @guest
+                    <a
+                        href="{{ route('login') }}"
+                        class="inline-flex h-12 items-center justify-center gap-2 rounded-2xl bg-white px-5 text-xs font-black text-blue-900 shadow-xl shadow-blue-950/20 transition duration-300 hover:-translate-y-0.5 hover:bg-cyan-50"
+                    >
+                        <i
+                            data-lucide="log-in"
+                            class="h-4 w-4"
+                        ></i>
 
-                <a href="{{ route('project-requests.index') }}"
-                   class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('project-requests.*') ? 'bg-blue-600 text-white' : 'text-slate-600 bg-blue-50' }}">
-                    <i data-lucide="folder-kanban" class="w-5 h-5"></i>
-                    Project Saya
-                </a>
+                        Login Member
+                    </a>
+                @else
+                    {{-- TOMBOL AREA MEMBER / DASHBOARD --}}
+                    <a
+                        href="{{ route($dashboardRoute) }}"
+                        @class([
+                            'inline-flex h-12 items-center justify-center gap-2 rounded-2xl px-5 text-xs font-black shadow-xl transition duration-300 hover:-translate-y-0.5',
+                            'bg-cyan-300 text-blue-950 shadow-cyan-950/10 hover:bg-cyan-200'
+                                => $currentUser->hasActiveMembership() && ! $currentUser->isAdmin(),
+                            'bg-white text-blue-900 shadow-blue-950/20 hover:bg-blue-50'
+                                => ! ($currentUser->hasActiveMembership() && ! $currentUser->isAdmin()),
+                        ])
+                    >
+                        <i
+                            data-lucide="{{ $dashboardIcon }}"
+                            class="h-4 w-4"
+                        ></i>
 
-                <a href="{{ route('blog.index') }}"
-                    class="flex items-center gap-2 px-4 py-2 rounded-2xl text-sm font-bold {{ request()->routeIs('blog.*') ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/30' : 'text-slate-600 hover:bg-blue-50 hover:text-blue-600' }}">
-                        <i data-lucide="newspaper" class="w-4 h-4"></i>
-                        Blog
+                        {{ $dashboardLabel }}
                     </a>
 
-                @if (auth()->user()->isAdmin())
-                    <div class="pt-3 mt-3 border-t border-blue-100">
-                        <p class="px-4 pb-2 text-xs font-black text-blue-600 uppercase tracking-widest">
-                            Admin Panel
-                        </p>
+                    {{-- DROPDOWN AKUN --}}
+                    <div
+                        class="relative"
+                        @click.outside="accountOpen = false"
+                    >
+                        <button
+                            type="button"
+                            @click="accountOpen = !accountOpen"
+                            class="flex h-12 items-center gap-3 rounded-2xl border border-white/15 bg-white/10 px-2.5 pr-3 backdrop-blur transition hover:bg-white/15"
+                        >
+                            <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-xs font-black text-blue-900">
+                                {{ strtoupper(substr($currentUser->name, 0, 1)) }}
+                            </div>
 
-                        <a href="{{ route('admin.dashboard') }}"
-                           class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold {{ request()->routeIs('admin.dashboard') ? 'bg-blue-600 text-white' : 'text-slate-600 bg-blue-50' }}">
-                            <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
-                            Dashboard Admin
-                        </a>
+                            <div class="hidden max-w-28 text-left 2xl:block">
+                                <p class="truncate text-[10px] font-black text-white">
+                                    {{ $currentUser->name }}
+                                </p>
 
-                        <a href="{{ route('admin.products.index') }}"
-                           class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-slate-600 bg-blue-50 mt-2">
-                            <i data-lucide="package" class="w-5 h-5"></i>
-                            Produk
-                        </a>
+                                <p class="mt-1 text-[8px] font-bold uppercase tracking-wider text-blue-200">
+                                    @if ($currentUser->isAdmin())
+                                        Administrator
+                                    @elseif ($currentUser->hasActiveMembership())
+                                        Member Aktif
+                                    @else
+                                        Client
+                                    @endif
+                                </p>
+                            </div>
 
-                        <a href="{{ route('admin.services.index') }}"
-                           class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-slate-600 bg-blue-50 mt-2">
-                            <i data-lucide="briefcase-business" class="w-5 h-5"></i>
-                            Jasa Website
-                        </a>
+                            <i
+                                data-lucide="chevron-down"
+                                class="h-4 w-4 text-blue-200 transition"
+                                :class="{ 'rotate-180': accountOpen }"
+                            ></i>
+                        </button>
+
+                        <div
+                            x-show="accountOpen"
+                            x-cloak
+                            x-transition
+                            class="absolute right-0 mt-3 w-64 overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 text-slate-900 shadow-2xl"
+                        >
+                            <div class="rounded-xl bg-blue-50 p-4">
+                                <p class="truncate text-xs font-black text-slate-900">
+                                    {{ $currentUser->name }}
+                                </p>
+
+                                <p class="mt-1 truncate text-[10px] font-medium text-slate-500">
+                                    {{ $currentUser->email }}
+                                </p>
+
+                                @if (
+                                    ! $currentUser->isAdmin()
+                                    && $currentUser->hasActiveMembership()
+                                )
+                                    <span class="mt-3 inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1.5 text-[9px] font-black text-emerald-700">
+                                        <i
+                                            data-lucide="badge-check"
+                                            class="h-3.5 w-3.5"
+                                        ></i>
+
+                                        Membership Aktif
+                                    </span>
+                                @endif
+                            </div>
+
+                            <div class="mt-2 space-y-1">
+                                <a
+                                    href="{{ route($dashboardRoute) }}"
+                                    class="flex items-center gap-3 rounded-xl px-3 py-3 text-xs font-black text-slate-700 transition hover:bg-blue-50 hover:text-blue-700"
+                                >
+                                    <i
+                                        data-lucide="{{ $dashboardIcon }}"
+                                        class="h-4 w-4"
+                                    ></i>
+
+                                    {{ $dashboardLabel }}
+                                </a>
+
+                                @if (
+                                    ! $currentUser->isAdmin()
+                                    && $currentUser->hasActiveMembership()
+                                )
+                                    <a
+                                        href="{{ route('member.dashboard') }}"
+                                        class="flex items-center gap-3 rounded-xl bg-cyan-50 px-3 py-3 text-xs font-black text-cyan-800 transition hover:bg-cyan-100"
+                                    >
+                                        <i
+                                            data-lucide="circle-play"
+                                            class="h-4 w-4"
+                                        ></i>
+
+                                        Kelas Saya
+                                    </a>
+                                @endif
+
+                                <a
+                                    href="{{ route('profile.edit') }}"
+                                    class="flex items-center gap-3 rounded-xl px-3 py-3 text-xs font-black text-slate-700 transition hover:bg-blue-50 hover:text-blue-700"
+                                >
+                                    <i
+                                        data-lucide="user-round-cog"
+                                        class="h-4 w-4"
+                                    ></i>
+
+                                    Pengaturan Profil
+                                </a>
+                            </div>
+
+                            <div class="mt-2 border-t border-slate-100 pt-2">
+                                <form
+                                    method="POST"
+                                    action="{{ route('logout') }}"
+                                >
+                                    @csrf
+
+                                    <button
+                                        type="submit"
+                                        class="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-xs font-black text-red-600 transition hover:bg-red-50"
+                                    >
+                                        <i
+                                            data-lucide="log-out"
+                                            class="h-4 w-4"
+                                        ></i>
+
+                                        Keluar
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
-                @endif
+                @endguest
+            </div>
 
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-red-600 bg-red-50">
-                        <i data-lucide="log-out" class="w-5 h-5"></i>
-                        Logout
-                    </button>
-                </form>
-            @else
-                <a href="{{ route('login') }}"
-                   class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-slate-600 bg-blue-50">
-                    <i data-lucide="log-in" class="w-5 h-5"></i>
-                    Login
-                </a>
+            {{-- MOBILE BUTTON --}}
+            <button
+                type="button"
+                @click="mobileOpen = !mobileOpen"
+                class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 text-white transition hover:bg-white/15 lg:hidden"
+                aria-label="Buka menu navigasi"
+            >
+                <i
+                    x-show="!mobileOpen"
+                    data-lucide="menu"
+                    class="h-5 w-5"
+                ></i>
 
-                <a href="{{ route('register') }}"
-                   class="flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-white bg-blue-600">
-                    <i data-lucide="user-plus" class="w-5 h-5"></i>
-                    Register
-                </a>
-            @endauth
+                <i
+                    x-show="mobileOpen"
+                    x-cloak
+                    data-lucide="x"
+                    class="h-5 w-5"
+                ></i>
+            </button>
+        </div>
+
+        {{-- MOBILE MENU --}}
+        <div
+            x-show="mobileOpen"
+            x-cloak
+            x-transition
+            class="border-t border-white/10 pb-5 pt-4 lg:hidden"
+        >
+            <div class="grid gap-2 sm:grid-cols-2">
+                @foreach ($menus as $menu)
+                    @php
+                        $isActive = request()->routeIs(...$menu['patterns']);
+                    @endphp
+
+                    <a
+                        href="{{ route($menu['route']) }}"
+                        @click="mobileOpen = false"
+                        @class([
+                            'flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-black transition',
+                            'bg-white text-blue-950 shadow-lg' => $isActive,
+                            'bg-white/[0.06] text-blue-100 hover:bg-white/10 hover:text-white' => ! $isActive,
+                        ])
+                    >
+                        <span
+                            @class([
+                                'flex h-9 w-9 items-center justify-center rounded-xl',
+                                'bg-blue-50 text-blue-700' => $isActive,
+                                'bg-white/10 text-blue-200' => ! $isActive,
+                            ])
+                        >
+                            <i
+                                data-lucide="{{ $menu['icon'] }}"
+                                class="h-4 w-4"
+                            ></i>
+                        </span>
+
+                        {{ $menu['label'] }}
+                    </a>
+                @endforeach
+            </div>
+
+            <div class="mt-4 border-t border-white/10 pt-4">
+                @guest
+                    <a
+                        href="{{ route('login') }}"
+                        class="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-5 py-4 text-sm font-black text-blue-950"
+                    >
+                        <i
+                            data-lucide="log-in"
+                            class="h-5 w-5"
+                        ></i>
+
+                        Login ke Area Member
+                    </a>
+
+                    <p class="mt-3 text-center text-[10px] font-medium leading-5 text-blue-200">
+                        Akun member dibuat langsung oleh admin HilmiDev.
+                    </p>
+                @else
+                    {{-- TOMBOL AREA MEMBER DI MOBILE --}}
+                    <a
+                        href="{{ route($dashboardRoute) }}"
+                        @click="mobileOpen = false"
+                        class="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-300 px-5 py-4 text-sm font-black text-blue-950 shadow-lg"
+                    >
+                        <i
+                            data-lucide="{{ $dashboardIcon }}"
+                            class="h-5 w-5"
+                        ></i>
+
+                        {{ $dashboardLabel }}
+                    </a>
+
+                    @if (
+                        ! $currentUser->isAdmin()
+                        && $currentUser->hasActiveMembership()
+                    )
+                        <a
+                            href="{{ route('member.dashboard') }}"
+                            @click="mobileOpen = false"
+                            class="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/10 px-5 py-4 text-sm font-black text-white"
+                        >
+                            <i
+                                data-lucide="circle-play"
+                                class="h-5 w-5"
+                            ></i>
+
+                            Buka Kelas Saya
+                        </a>
+                    @endif
+
+                    <div class="mt-3 grid grid-cols-2 gap-2">
+                        <a
+                            href="{{ route('profile.edit') }}"
+                            class="flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/[0.06] px-4 py-3 text-xs font-black text-blue-100"
+                        >
+                            <i
+                                data-lucide="user-round-cog"
+                                class="h-4 w-4"
+                            ></i>
+
+                            Profil
+                        </a>
+
+                        <form
+                            method="POST"
+                            action="{{ route('logout') }}"
+                        >
+                            @csrf
+
+                            <button
+                                type="submit"
+                                class="flex w-full items-center justify-center gap-2 rounded-2xl bg-red-500/15 px-4 py-3 text-xs font-black text-red-100"
+                            >
+                                <i
+                                    data-lucide="log-out"
+                                    class="h-4 w-4"
+                                ></i>
+
+                                Keluar
+                            </button>
+                        </form>
+                    </div>
+                @endguest
+            </div>
         </div>
     </div>
 </nav>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+    });
+</script>
